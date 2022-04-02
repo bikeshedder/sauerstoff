@@ -15,4 +15,7 @@ opt-level = 3
 
 [dependencies]
 bevy = { version = "0.6.1", features = ["dynamic", "jpeg"] }
+bevy_kira_audio = { version = "0.8.0", features = ["mp3"] }
 itertools = "0.10.3"
+serde = { version = "1.0.136", features = ["derive"] }
+serde_yaml = "0.8.23"

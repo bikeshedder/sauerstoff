@@ -1,7 +1,9 @@
+use bevy_kira_audio::{Audio, AudioPlugin};
 use bevy::{core::FixedTimestep, prelude::*};
 use input::PlayerInput;
 
 mod input;
+mod sprites;
 
 const TIME_STEP: f32 = 1.0 / 60.0;
 const PLAYER_SPEED: f32 = 128.0;
@@ -16,7 +18,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("map.jpg"),
+        texture: asset_server.load("map/map.jpg"),
         transform: Transform {
             translation: Vec3::new(0.0, 0.0, 0.0),
             ..Default::default()
@@ -24,10 +26,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>) {
         ..Default::default()
     }).insert(Map {});
     commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("wolfgang.png"),
+        texture: asset_server.load("entities/wolfgang/idle.png"),
         transform: Transform {
             translation: Vec3::new(0.0, 0.0, 1.0),
-            scale: Vec3::splat(0.2),
             ..Default::default()
         },
         ..Default::default()
@@ -54,10 +55,16 @@ fn player_input(
     transform.translation.y += input.y * PLAYER_SPEED * delta;
 }
 
+fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
+    audio.play_looped(asset_server.load("music/base.mp3"));
+}
+
 fn main() {
     App::new()
         .add_plugins(DefaultPlugins)
+        .add_plugin(AudioPlugin)
         .add_startup_system(setup)
+        //.add_startup_system(start_background_audio)
         .add_system_set(
             SystemSet::new()
                 .with_run_criteria(FixedTimestep::step(TIME_STEP as f64))

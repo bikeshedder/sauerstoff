@@ -1,7 +1,12 @@
-use bevy::{asset::LoadState, core::FixedTimestep, prelude::*};
+use bevy::{
+    asset::LoadState,
+    core::FixedTimestep,
+    prelude::*,
+    sprite::collide_aabb::{collide, Collision},
+};
 use bevy_kira_audio::{Audio, AudioPlugin};
 use input::PlayerInput;
-use sprites::WolfgangFrames;
+use sprites::{Map, WolfgangFrames};
 
 mod input;
 mod sprites;
@@ -14,9 +19,6 @@ enum AppState {
 
 const TIME_STEP: f32 = 1.0 / 60.0;
 const PLAYER_SPEED: f32 = 300.0;
-
-#[derive(Component, Debug)]
-struct Map {}
 
 #[derive(Debug)]
 enum PlayerAnimation {
@@ -42,9 +44,20 @@ struct Player {
     frame_index: usize,
 }
 
+#[derive(Debug, Component)]
+struct Blocking {
+    pos: Vec3,
+    size: Vec2,
+}
+
 #[derive(Default)]
 struct EntityTextures {
     handles: Vec<HandleUntyped>,
+}
+
+const Z_MIN: f32 = 0.0;
+fn z_index(y: f32) -> f32 {
+    1.0 - y / 65536.0
 }
 
 fn load_textures(mut entities: ResMut<EntityTextures>, asset_server: Res<AssetServer>) {
@@ -60,6 +73,29 @@ fn check_textures(
         asset_server.get_group_load_state(entities.handles.iter().map(|handle| handle.id))
     {
         state.set(AppState::Finished).unwrap();
+    }
+}
+
+fn initialize_map(mut commands: Commands, asset_server: Res<AssetServer>, map: Res<Map>) {
+    for crystal in &map.crystals {
+        let translation = Vec3::new(
+            crystal.x.into(),
+            crystal.y.into(),
+            z_index(f32::from(crystal.y) - f32::from(crystal.size.size().1) / 2.0),
+        );
+        commands
+            .spawn_bundle(SpriteBundle {
+                texture: asset_server.load(crystal.size.image()),
+                transform: Transform {
+                    translation,
+                    ..Default::default()
+                },
+                ..Default::default()
+            })
+            .insert(Blocking {
+                pos: translation + crystal.size.collision_origin(),
+                size: crystal.size.collision_size(),
+            });
     }
 }
 
@@ -89,23 +125,21 @@ fn setup(
 
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     //commands.spawn_bundle(UiCameraBundle::default());
-    commands
-        .spawn_bundle(SpriteBundle {
-            texture: asset_server.load("map/map.jpg"),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 0.0),
-                ..Default::default()
-            },
+    commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("map/map.jpg"),
+        transform: Transform {
+            translation: Vec3::new(0.0, 0.0, Z_MIN),
             ..Default::default()
-        })
-        .insert(Map {});
+        },
+        ..Default::default()
+    });
 
     commands
         .spawn_bundle(SpriteSheetBundle {
             texture_atlas: atlas_handle,
             sprite: TextureAtlasSprite::new(0),
             transform: Transform {
-                translation: Vec3::new(0.0, 0.0, 1.0),
+                translation: Vec3::new(0.0, 0.0, z_index(0.0)),
                 ..Default::default()
             },
             ..Default::default()
@@ -117,8 +151,14 @@ fn setup(
         })
         .insert(Timer::from_seconds(0.15, true));
 
-    //let wolfgang = asset_server.load("entities/wolfgang.yaml");
-    //println!("{:?}", wolfgang);
+    commands.spawn_bundle(SpriteBundle {
+        texture: asset_server.load("entities/engine/Motor.png"),
+        transform: Transform {
+            translation: Vec3::new(500.0, 200.0, z_index(300.0 - 396.0 / 2.0)),
+            ..Default::default()
+        },
+        ..Default::default()
+    });
 }
 
 fn player_input(
@@ -128,6 +168,7 @@ fn player_input(
     gamepad_button: Res<Input<GamepadButton>>,
     mut query: Query<(&mut Transform, &mut Player)>,
     time: Res<Time>,
+    blocking_query: Query<(&Blocking, &Transform, Without<Player>)>,
 ) {
     let mut input = PlayerInput::from_keys(key);
     input.merge(
@@ -162,6 +203,34 @@ fn player_input(
     } else {
         transform.translation.x += input.x * PLAYER_SPEED * delta;
         transform.translation.y += input.y * PLAYER_SPEED * delta;
+        // FIXME hardcoded player size... meh...
+        transform.translation.z = z_index(transform.translation.y - 128.0);
+
+        // now make sure we're not colliding with anything
+        for (blocking, blocking_transform, _) in blocking_query.iter() {
+            // FIXME hardcoded sizes
+            if let Some(collision) = collide(
+                transform.translation + Vec3::new(0.0, -64.0, 0.0),
+                Vec2::new(128.0, 64.0),
+                blocking.pos,
+                blocking.size,
+            ) {
+                match collision {
+                    Collision::Left => {
+                        transform.translation.x = blocking.pos.x - blocking.size.x / 2.0 - 64.0;
+                    }
+                    Collision::Right => {
+                        transform.translation.x = blocking.pos.x + blocking.size.x / 2.0 + 64.0;
+                    }
+                    Collision::Top => {
+                        transform.translation.y = blocking.pos.y + blocking.size.y / 2.0 + 96.0;
+                    }
+                    Collision::Bottom => {
+                        transform.translation.y = blocking.pos.y - blocking.size.y / 2.0 + 32.0;
+                    }
+                }
+            }
+        }
     }
 }
 
@@ -171,7 +240,7 @@ fn camera_system(
 ) {
     let (_, player_transform, _) = player_query.single();
     if let Ok((_, mut transform, _)) = camera_query.get_single_mut() {
-        transform.translation.x = player_transform.translation.x.clamp(1920.0, 1920.0);
+        transform.translation.x = player_transform.translation.x.clamp(-1920.0, 1920.0);
         transform.translation.y = player_transform.translation.y.clamp(-1080.0, 1080.0);
     }
 }
@@ -219,16 +288,24 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let yaml = std::fs::File::open("assets/entities/wolfgang.yaml")?;
     let wolfgang_frames: WolfgangFrames = serde_yaml::from_reader(yaml)?;
 
+    let yaml = std::fs::File::open("assets/map/map.yaml")?;
+    let map: Map = serde_yaml::from_reader(yaml)?;
+
     App::new()
         .init_resource::<EntityTextures>()
         .insert_resource(wolfgang_frames)
+        .insert_resource(map)
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_state(AppState::Setup)
         //.add_startup_system(start_background_audio)
         .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_textures))
         .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_textures))
-        .add_system_set(SystemSet::on_enter(AppState::Finished).with_system(setup))
+        .add_system_set(
+            SystemSet::on_enter(AppState::Finished)
+                .with_system(initialize_map)
+                .with_system(setup),
+        )
         .add_system_set(
             SystemSet::on_update(AppState::Finished)
                 .with_system(player_input)

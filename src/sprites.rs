@@ -1,3 +1,4 @@
+use bevy::math::{Vec2, Vec3};
 use serde::Deserialize;
 
 #[derive(Deserialize, Debug)]
@@ -33,4 +34,63 @@ pub struct Frame {
     pub duration: u64,
     #[serde(skip)]
     pub index: usize,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Map {
+    pub crystals: Vec<CrystalSpawn>,
+}
+
+#[derive(Deserialize, Debug)]
+pub enum CrystalSize {
+    Small,
+    Medium,
+    Large,
+}
+
+impl CrystalSize {
+    pub fn image(&self) -> &'static str {
+        match self {
+            Self::Small => "entities/crystal_small/Crystals_Small.png",
+            Self::Medium => "entities/crystal_medium/Crystals_Medium.png",
+            Self::Large => "entities/crystal_big/Crystals_Big.png",
+        }
+    }
+    pub fn size(&self) -> (u16, u16) {
+        match self {
+            Self::Small => (241, 190),
+            Self::Medium => (454, 423),
+            Self::Large => (672, 656),
+        }
+    }
+    pub fn collision_origin(&self) -> Vec3 {
+        let size = self.size();
+        match self {
+            Self::Small => Vec3::new(
+                -241.0 / 2.0 + 200.0 / 2.0,
+                -190.0 / 2.0 + 60.0 / 2.0 + 20.0,
+                0.0,
+            ),
+            _ => Vec3::default(),
+        }
+    }
+    pub fn collision_size(&self) -> Vec2 {
+        match self {
+            Self::Small => Vec2::new(200.0, 60.0),
+            Self::Medium => Vec2::new(0.0, 0.0), // FIXME
+            Self::Large => Vec2::new(0.0, 0.0),  // FIXME
+        }
+    }
+    pub fn origin(&self) -> Vec3 {
+        let size = self.size();
+        Vec3::new(-f32::from(size.0) / 2.0, -f32::from(size.1) / 2.0, 0.0)
+    }
+}
+
+#[derive(Deserialize, Debug)]
+pub struct CrystalSpawn {
+    pub id: String,
+    pub size: CrystalSize,
+    pub x: i16,
+    pub y: i16,
 }

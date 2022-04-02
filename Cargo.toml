@@ -14,6 +14,7 @@ opt-level = 1
 opt-level = 3
 
 [dependencies]
+anyhow = "1.0.56"
 bevy = { version = "0.6.1", features = ["dynamic", "jpeg"] }
 bevy_kira_audio = { version = "0.8.0", features = ["mp3"] }
 itertools = "0.10.3"

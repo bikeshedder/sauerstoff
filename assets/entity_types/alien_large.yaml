@@ -1,0 +1,8 @@
+image: "Alien_Large.png"
+width: 618
+height: 802
+collision:
+  x: 25
+  y: 620
+  width: 445
+  height: 175

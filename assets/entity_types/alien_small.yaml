@@ -1,0 +1,8 @@
+image: "Alien_Small.png"
+width: 293
+height: 286
+collision:
+  x: 1
+  y: 224
+  width: 149
+  height: 55

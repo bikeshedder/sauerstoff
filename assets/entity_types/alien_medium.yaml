@@ -1,0 +1,8 @@
+image: "Alien_Medium.png"
+width: 513
+height: 497
+collision:
+  x: 30
+  y: 349
+  width: 336
+  height: 136

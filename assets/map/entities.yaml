@@ -17,3 +17,28 @@ engine:
   type: engine
   x: 500
   y: 0
+
+workbench:
+  type: workbench
+  x: 1800
+  y: 200
+
+spaceship:
+  type: spaceship
+  x: 1800
+  y: 200
+
+alien1:
+  type: alien_small
+  x: -700
+  y: 0
+
+alien2:
+  type: alien_medium
+  x: -500
+  y: -500
+
+alien3:
+  type: alien_large
+  x: -1000
+  y: -400

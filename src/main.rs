@@ -16,6 +16,8 @@ use systems::{
     camera::camera_system,
     input::player_input,
     map::initialize_map,
+    music::music_system,
+    player::player_system,
     textures::{check_textures, load_textures},
 };
 
@@ -85,6 +87,7 @@ fn spawn_entity(
             });
             cmd.insert(AnimationState {
                 animation: animation_name.unwrap(),
+                restart: true,
                 index: 0,
             });
             cmd
@@ -133,7 +136,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_state(AppState::Setup)
-        //.add_startup_system(start_background_audio)
+        //.add_startup_system(music_system)
         .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_textures))
         .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_textures))
         .add_system_set(
@@ -144,6 +147,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_system_set(
             SystemSet::on_update(AppState::Finished)
                 .with_system(player_input)
+                .with_system(player_system)
                 .with_system(animation_system)
                 .with_system(camera_system),
         )

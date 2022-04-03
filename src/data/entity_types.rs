@@ -1,4 +1,4 @@
-use std::{borrow::Cow, path::PathBuf, time::Duration};
+use std::{borrow::Cow, time::Duration};
 
 use bevy::{
     prelude::{Handle, Image},
@@ -20,6 +20,11 @@ pub struct EntityType {
     pub image: EntityImage,
     #[serde(skip)]
     pub loaded: Option<Loaded>,
+}
+
+enum GenericError {
+    Message(String),
+    IoError(std::io::Error),
 }
 
 #[derive(Debug)]

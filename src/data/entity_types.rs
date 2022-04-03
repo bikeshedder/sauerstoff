@@ -7,7 +7,7 @@ use bevy::{
 };
 use serde::Deserialize;
 
-use super::common::{Rect, Size};
+use super::common::{Position, Rect, Size};
 
 pub type EntityTypes = HashMap<String, EntityType>;
 
@@ -16,6 +16,7 @@ pub struct EntityType {
     #[serde(flatten)]
     pub size: Size,
     pub collision: Option<Rect>,
+    pub interaction: Option<Interaction>,
     #[serde(flatten)]
     pub image: EntityImage,
     #[serde(skip)]
@@ -64,6 +65,13 @@ pub struct Frame {
     pub duration: u64,
     #[serde(skip)]
     pub index: usize,
+}
+
+#[derive(Deserialize, Debug)]
+pub struct Interaction {
+    pub name: String,
+    pub position: Position,
+    pub max_distance: u16,
 }
 
 pub fn load_entity_types() -> Result<EntityTypes, anyhow::Error> {

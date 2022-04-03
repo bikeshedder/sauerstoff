@@ -6,3 +6,9 @@ collision:
   width: 194
   height: 75
 image: "Workbench.png"
+interaction:
+  name: use_workbench
+  max_distance: 50
+  position:
+    x: 328
+    y: 872

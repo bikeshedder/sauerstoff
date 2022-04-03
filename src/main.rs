@@ -4,6 +4,7 @@ use bevy_kira_audio::AudioPlugin;
 use components::{
     animation::{Animation, AnimationState},
     collision::Collision,
+    interaction::Interaction,
     player::Player,
 };
 use data::{
@@ -15,6 +16,7 @@ use systems::{
     animation::animation_system,
     camera::camera_system,
     input::player_input,
+    interaction::detect_interaction,
     map::initialize_map,
     music::music_system,
     player::player_system,
@@ -97,6 +99,19 @@ fn spawn_entity(
     if let Some(collision) = collision {
         entity_cmds.insert(collision);
     }
+    if let Some(interaction) = &entity_type.interaction {
+        entity_cmds.insert(Interaction {
+            name: interaction.name.clone(),
+            center: Vec3::new(
+                translation.x - f32::from(entity_type.size.width) / 2.0
+                    + f32::from(interaction.position.x),
+                translation.y + f32::from(entity_type.size.height) / 2.0
+                    - f32::from(interaction.position.y),
+                0.0,
+            ),
+            max_distance: interaction.max_distance,
+        });
+    }
     f(&mut entity_cmds);
 }
 
@@ -149,6 +164,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_system(player_input)
                 .with_system(player_system)
                 .with_system(animation_system)
+                .with_system(detect_interaction)
                 .with_system(camera_system),
         )
         .run();

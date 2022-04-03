@@ -6,3 +6,9 @@ collision:
   y: 70
   width: 91
   height: 28
+interaction:
+  name: mine_small_crystal
+  max_distance: 100
+  position:
+    x: 52
+    y: 84

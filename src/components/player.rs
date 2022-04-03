@@ -2,6 +2,7 @@ use std::cmp::Ordering;
 
 use bevy::{
     input::{Axis, Input},
+    math::Vec3,
     prelude::{
         Component, Gamepad, GamepadAxis, GamepadAxisType, GamepadButton, GamepadButtonType,
         KeyCode, Res,
@@ -92,6 +93,7 @@ pub struct Player {
     pub input: PlayerInput,
     pub state: PlayerState,
     pub interact_direction: InteractDirection,
+    pub center: Vec3,
 }
 
 impl Player {
@@ -121,6 +123,7 @@ impl Default for Player {
             input: PlayerInput::default(),
             state: PlayerState::Idle,
             interact_direction: InteractDirection::Right,
+            center: Vec3::new(0.0, -40.0, 0.0),
         }
     }
 }

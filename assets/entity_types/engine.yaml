@@ -6,3 +6,9 @@ collision:
   y: 186
   width: 322
   height: 102
+interaction:
+  name: take_tape
+  max_distance: 50
+  position:
+    x: 254
+    y: 186

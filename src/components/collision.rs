@@ -8,7 +8,7 @@ use crate::{
     helpers::z_index,
 };
 
-#[derive(Component)]
+#[derive(Component, Debug)]
 pub struct Collision {
     pub origin: Vec3,
     pub pos: Vec3,
@@ -27,9 +27,8 @@ impl Collision {
                 + f32::from(collision_box.size.width) / 2.0
                 + f32::from(collision_box.position.x),
             // FIXME this expression can be simplified
-            -f32::from(entity_size.height) / 2.0
-                + f32::from(collision_box.size.height) / 2.0
-                + f32::from(entity_size.height)
+            f32::from(entity_size.height) / 2.0
+                - f32::from(collision_box.size.height) / 2.0
                 - f32::from(collision_box.position.y),
             0.0,
         );

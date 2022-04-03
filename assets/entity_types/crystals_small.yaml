@@ -1,6 +1,6 @@
 image: "Crystals_Small.png"
-width: 241
-height: 190
+width: 145
+height: 114
 collision:
   x: 7
   y: 70

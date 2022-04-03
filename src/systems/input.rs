@@ -1,4 +1,7 @@
-use bevy::prelude::*;
+use bevy::{
+    prelude::*,
+    sprite::collide_aabb::{collide, Collision as BevyCollision},
+};
 
 use crate::components::{
     animation::AnimationState,
@@ -76,7 +79,7 @@ pub fn player_input(
         &mut Collision,
     )>,
     time: Res<Time>,
-    blocking_query: Query<(&Collision, &Transform, Without<Player>)>,
+    collision_query: Query<(&Collision, Without<Player>)>,
 ) {
     let mut input = PlayerInput::from_keys(key);
     input.merge(
@@ -113,32 +116,41 @@ pub fn player_input(
         transform.translation.y += input.y * PLAYER_SPEED * delta;
         transform.translation.z = player_collision.update_position(transform.translation);
 
-        /* FIXME this code is currently broken
         // now make sure we're not colliding with anything
-        for (blocking, blocking_transform, _) in blocking_query.iter() {
+        for (entity_collision, _) in collision_query.iter() {
             if let Some(collision) = collide(
                 player_collision.pos,
                 player_collision.size,
-                blocking.pos,
-                blocking.size,
+                entity_collision.pos,
+                entity_collision.size,
             ) {
                 match collision {
                     BevyCollision::Left => {
-                        transform.translation.x =
+                        transform.translation.x = entity_collision.pos.x
+                            - entity_collision.size.x / 2.0
+                            - player_collision.size.x / 2.0
+                            - player_collision.origin.x;
                     }
                     BevyCollision::Right => {
-                        transform.translation.x =
+                        transform.translation.x = entity_collision.pos.x
+                            + entity_collision.size.x / 2.0
+                            + player_collision.size.x / 2.0
+                            - player_collision.origin.x;
                     }
                     BevyCollision::Top => {
-                        transform.translation.y =
+                        transform.translation.y = entity_collision.pos.y
+                            + entity_collision.size.y / 2.0
+                            + player_collision.size.y / 2.0
+                            - player_collision.origin.y;
                     }
                     BevyCollision::Bottom => {
-                        transform.translation.y =
+                        transform.translation.y = entity_collision.pos.y
+                            - entity_collision.size.y / 2.0
+                            - player_collision.size.y / 2.0
+                            - player_collision.origin.y;
                     }
-                    _ => {}
                 }
             }
         }
-         */
     }
 }

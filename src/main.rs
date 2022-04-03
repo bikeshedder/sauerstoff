@@ -4,6 +4,7 @@ use bevy_kira_audio::AudioPlugin;
 use components::{
     animation::{Animation, AnimationState},
     collision::Collision,
+    followcam::FollowCam,
     interaction::Interaction,
     player::Player,
 };
@@ -116,8 +117,10 @@ fn spawn_entity(
 }
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
-    commands.spawn_bundle(OrthographicCameraBundle::new_2d());
-    //commands.spawn_bundle(UiCameraBundle::default());
+    commands
+        .spawn_bundle(OrthographicCameraBundle::new_2d())
+        .insert(FollowCam {});
+    commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("map/map.jpg"),
         transform: Transform {
@@ -138,6 +141,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
                 .insert(Timer::from_seconds(0.1, true));
         },
     );
+
+    commands.spawn_bundle(TextBundle {
+        style: Style {
+            margin: Rect::all(Val::Px(5.0)),
+            ..Default::default()
+        },
+        text: Text::with_section(
+            "Text Example",
+            TextStyle {
+                font: asset_server.load("fonts/FiraSans-Bold.ttf"),
+                font_size: 30.0,
+                color: Color::WHITE,
+            },
+            Default::default(),
+        ),
+        ..Default::default()
+    });
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {

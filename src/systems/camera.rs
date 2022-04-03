@@ -1,9 +1,9 @@
 use bevy::prelude::{Camera, Query, Transform, Without};
 
-use crate::components::player::Player;
+use crate::components::{followcam::FollowCam, player::Player};
 
 pub fn camera_system(
-    mut camera_query: Query<(&Camera, &mut Transform, Without<Player>)>,
+    mut camera_query: Query<(&FollowCam, &mut Transform, Without<Player>)>,
     player_query: Query<(&Player, &Transform, Without<Camera>)>,
 ) {
     let (_, player_transform, _) = player_query.single();

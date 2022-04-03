@@ -6,3 +6,9 @@ collision:
   y: 315
   width: 208
   height: 79
+interaction:
+  name: mine_large_crystal
+  max_distance: 150
+  position:
+    x: 169
+    y: 354

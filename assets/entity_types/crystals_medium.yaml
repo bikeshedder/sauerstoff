@@ -6,3 +6,9 @@ collision:
   y: 164
   width: 179
   height: 86
+interaction:
+  name: mine_medium_crystal
+  max_distance: 120
+  position:
+    x: 96
+    y: 207

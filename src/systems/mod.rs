@@ -2,6 +2,7 @@ pub mod animation;
 pub mod camera;
 pub mod input;
 pub mod interaction;
+pub mod item;
 pub mod map;
 pub mod music;
 pub mod player;

@@ -18,6 +18,7 @@ use systems::{
     camera::camera_system,
     input::player_input,
     interaction::detect_interaction,
+    item::{item_bobbing, spawn_item},
     map::initialize_map,
     music::music_system,
     player::player_system,
@@ -158,6 +159,8 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
         ),
         ..Default::default()
     });
+
+    spawn_item(&mut commands, asset_server);
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -185,7 +188,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_system(player_system)
                 .with_system(animation_system)
                 .with_system(detect_interaction)
-                .with_system(camera_system),
+                .with_system(camera_system)
+                .with_system(item_bobbing),
         )
         .run();
 

@@ -1,15 +1,26 @@
+use std::time::Duration;
+
 use bevy::{
-    asset::LoadState,
-    core::FixedTimestep,
-    prelude::*,
-    sprite::collide_aabb::{collide, Collision},
+    asset::LoadState, ecs::system::EntityCommands, prelude::*, sprite::collide_aabb::collide,
+    sprite::collide_aabb::Collision as BevyCollision, utils::HashMap,
 };
 use bevy_kira_audio::{Audio, AudioPlugin};
-use input::PlayerInput;
-use sprites::{Map, WolfgangFrames};
 
-mod input;
-mod sprites;
+use components::collision::Collision;
+use data::{
+    entity_types::{
+        load_entity_types, EntityImage, EntityType, EntityTypes, Loaded, LoadedAnimation,
+        LoadedAnimations,
+    },
+    map::{load_map, Map, MapEntity},
+};
+use helpers::z_index;
+use systems::input::PlayerInput;
+
+mod components;
+mod data;
+mod helpers;
+mod systems;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
 enum AppState {
@@ -17,19 +28,7 @@ enum AppState {
     Finished,
 }
 
-const TIME_STEP: f32 = 1.0 / 60.0;
 const PLAYER_SPEED: f32 = 300.0;
-
-#[derive(Debug)]
-enum PlayerAnimation {
-    Idle,
-    WalkRight,
-    WalkLeft,
-    WalkUp,
-    WalkDown,
-    InteractLeft,
-    InteractRight,
-}
 
 #[derive(Debug)]
 enum InteractDirection {
@@ -39,126 +38,273 @@ enum InteractDirection {
 
 #[derive(Component, Debug)]
 struct Player {
-    animation: PlayerAnimation,
     interact_direction: InteractDirection,
-    frame_index: usize,
 }
 
-#[derive(Debug, Component)]
-struct Blocking {
-    pos: Vec3,
-    size: Vec2,
+#[derive(Component, Debug)]
+struct Animation {
+    frames: HashMap<String, Vec<(usize, Duration)>>,
+}
+
+#[derive(Component, Debug)]
+struct AnimationState {
+    animation: &'static str,
+    index: usize,
 }
 
 #[derive(Default)]
-struct EntityTextures {
-    handles: Vec<HandleUntyped>,
+struct ImageHandles {
+    handles: Vec<Handle<Image>>,
 }
 
-const Z_MIN: f32 = 0.0;
-fn z_index(y: f32) -> f32 {
-    1.0 - y / 65536.0
+impl ImageHandles {
+    fn add(&mut self, handle: Handle<Image>) -> usize {
+        let index = self.handles.len();
+        self.handles.push(handle);
+        index
+    }
 }
 
-fn load_textures(mut entities: ResMut<EntityTextures>, asset_server: Res<AssetServer>) {
-    entities.handles = asset_server.load_folder("entities").unwrap();
+fn load_textures(
+    mut entity_types: ResMut<EntityTypes>,
+    mut image_handles: ResMut<ImageHandles>,
+    asset_server: Res<AssetServer>,
+    mut textures: ResMut<Assets<Image>>,
+) {
+    for entity_type in entity_types.values_mut() {
+        match &entity_type.image {
+            EntityImage::Static(image) => {
+                let handle = asset_server.load::<Image, _>(&format!("entities/{image}"));
+                image_handles.add(handle.clone());
+                entity_type.loaded = Some(Loaded::Static(handle));
+            }
+
+            /*
+            EntityImage::Animation(frames) => {
+                let mut atlas_builder = TextureAtlasBuilder::default();
+                for frame in frames.iter() {
+                    let handle = asset_server.get_handle(&format!("entities/{}", frame.image));
+                    let texture = textures.get(&format!("entities/{}", frame.image)).unwrap();
+                    atlas_builder.add_texture(handle, texture);
+                }
+                let atlas = atlas_builder.finish(&mut textures).unwrap();
+                for frame in frames.iter() {
+                    let frame_index = atlas
+                        .get_texture_index(&handle)
+                        .unwrap_or_else(|| panic!("Missing image: {}", frame.image));
+                    // FIXME
+                }
+            }
+             */
+            EntityImage::Animations(animations) => {
+                for animation in animations.values() {
+                    for frame in animation.iter() {
+                        let image = &frame.image;
+                        let handle = asset_server.load::<Image, _>(&format!("entities/{image}"));
+                        image_handles.add(handle.clone());
+                        entity_type.loaded = Some(Loaded::Static(handle));
+                    }
+                }
+            }
+            _ => unimplemented!(),
+        }
+    }
 }
 
 fn check_textures(
     mut state: ResMut<State<AppState>>,
-    entities: ResMut<EntityTextures>,
+    image_handles: ResMut<ImageHandles>,
     asset_server: Res<AssetServer>,
+    mut entity_types: ResMut<EntityTypes>,
+    mut textures: ResMut<Assets<Image>>,
+    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     if let LoadState::Loaded =
-        asset_server.get_group_load_state(entities.handles.iter().map(|handle| handle.id))
+        asset_server.get_group_load_state(image_handles.handles.iter().map(|handle| handle.id))
     {
         state.set(AppState::Finished).unwrap();
+
+        for entity_type in entity_types.values_mut() {
+            match &entity_type.image {
+                EntityImage::Static(image) => {
+                    // The handle was already assigned in the load_textures method.
+                }
+                /*
+                EntityImage::Animation(frames) => {
+                    let mut atlas_builder = TextureAtlasBuilder::default();
+                    for frame in frames.iter() {
+                        let handle = asset_server.get_handle(&format!("entities/{}", frame.image));
+                        let texture = textures.get(&format!("entities/{}", frame.image)).unwrap();
+                        atlas_builder.add_texture(handle, texture);
+                    }
+                    let atlas = atlas_builder.finish(&mut textures).unwrap();
+                    for frame in frames.iter() {
+                        let frame_index = atlas
+                            .get_texture_index(&handle)
+                            .unwrap_or_else(|| panic!("Missing image: {}", frame.image));
+                        // FIXME
+                    }
+                }
+                 */
+                EntityImage::Animations(animations) => {
+                    let mut atlas_builder = TextureAtlasBuilder::default();
+                    let frame_handles: HashMap<String, Vec<(Handle<Image>, Duration)>> = animations
+                        .iter()
+                        .map(|(animation_name, frames)| {
+                            (
+                                animation_name.clone(),
+                                frames
+                                    .iter()
+                                    .map(|frame| {
+                                        let file_name = format!("entities/{}", frame.image);
+                                        let handle = asset_server.get_handle(&file_name);
+                                        let texture = textures.get(&file_name).unwrap();
+                                        atlas_builder.add_texture(handle.clone(), texture);
+                                        (handle, Duration::from_millis(frame.duration))
+                                    })
+                                    .collect(),
+                            )
+                        })
+                        .collect();
+                    let atlas = atlas_builder.finish(&mut textures).unwrap();
+                    let atlas_handle = texture_atlases.add(atlas);
+                    let atlas = texture_atlases.get(atlas_handle.clone()).unwrap();
+                    entity_type.loaded = Some(Loaded::Animations(LoadedAnimations {
+                        atlas: atlas_handle,
+                        frames: frame_handles
+                            .into_iter()
+                            .map(|(animation_name, frames)| {
+                                (
+                                    animation_name,
+                                    frames
+                                        .into_iter()
+                                        .map(|(handle, duration)| {
+                                            (atlas.get_texture_index(&handle).unwrap(), duration)
+                                        })
+                                        .collect(),
+                                )
+                            })
+                            .collect(),
+                    }));
+                }
+                _ => unimplemented!(),
+            }
+        }
+        /*
+        let mut atlas_builder = TextureAtlasBuilder::default();
+        for handle in &entity_textures.handles {
+            let texture = textures.get(handle).unwrap();
+            atlas_builder.add_texture(handle.clone_weak().typed::<Image>(), texture);
+        }
+
+        for frame in wolfgang_frames.frames_mut() {
+            let handle = asset_server.get_handle(&format!("entities/wolfgang/{}", frame.image));
+            frame.index = atlas
+                .get_texture_index(&handle)
+                .unwrap_or_else(|| panic!("Missing image: {}", frame.image));
+        }
+
+        let atlas_handle = texture_atlases.add(atlas);
+         */
     }
 }
 
-fn initialize_map(mut commands: Commands, asset_server: Res<AssetServer>, map: Res<Map>) {
-    for crystal in &map.crystals {
-        let translation = Vec3::new(
-            crystal.x.into(),
-            crystal.y.into(),
-            z_index(f32::from(crystal.y) - f32::from(crystal.size.size().1) / 2.0),
-        );
-        commands
-            .spawn_bundle(SpriteBundle {
-                texture: asset_server.load(crystal.size.image()),
+fn spawn_entity(
+    commands: &mut Commands,
+    entity_type: &EntityType,
+    mut translation: Vec3,
+    animation_name: Option<&'static str>,
+    f: fn(cmd: &mut EntityCommands),
+) {
+    let collision = entity_type.collision.map(|collision| {
+        let mut collision = Collision::from_data(entity_type.size, collision);
+        translation.z = collision.update_position(translation);
+        collision
+    });
+    let mut entity_cmds = match entity_type.loaded.as_ref().unwrap() {
+        Loaded::Static(handle) => commands.spawn_bundle(SpriteBundle {
+            texture: handle.clone(),
+            transform: Transform {
+                translation,
+                ..Default::default()
+            },
+            ..Default::default()
+        }),
+        Loaded::Animations(animations) => {
+            let mut cmd = commands.spawn_bundle(SpriteSheetBundle {
+                texture_atlas: animations.atlas.clone(),
+                // FIXME pass optional initial frame
+                sprite: TextureAtlasSprite {
+                    index: animation_name
+                        .map(|name| animations.frames[name][0].0)
+                        .unwrap(),
+                    ..Default::default()
+                },
                 transform: Transform {
-                    translation,
+                    translation: Vec3::new(0.0, 0.0, z_index(0.0)),
                     ..Default::default()
                 },
                 ..Default::default()
-            })
-            .insert(Blocking {
-                pos: translation + crystal.size.collision_origin(),
-                size: crystal.size.collision_size(),
             });
+            cmd.insert(Animation {
+                frames: animations.frames.clone(),
+            });
+            cmd.insert(AnimationState {
+                animation: animation_name.unwrap(),
+                index: 0,
+            });
+            cmd
+        }
+        _ => unimplemented!(),
+    };
+    if let Some(collision) = collision {
+        entity_cmds.insert(collision);
+    }
+    f(&mut entity_cmds);
+}
+
+fn initialize_map(mut commands: Commands, map: Res<Map>, entity_types: Res<EntityTypes>) {
+    for (name, entity) in map.entities.iter() {
+        let entity_type = entity_types.get(&entity.entity_type).unwrap_or_else(|| {
+            panic!(
+                "Entity {:?} references non existant entity type: {}",
+                name, entity.entity_type
+            )
+        });
+        let position = Vec3::new(entity.position.x.into(), entity.position.y.into(), 0.0);
+        spawn_entity(&mut commands, entity_type, position, None, |_| {});
     }
 }
 
 fn setup(
     mut commands: Commands,
     asset_server: Res<AssetServer>,
-    mut texture_atlases: ResMut<Assets<TextureAtlas>>,
-    entity_textures: ResMut<EntityTextures>,
     mut textures: ResMut<Assets<Image>>,
-    mut wolfgang_frames: ResMut<WolfgangFrames>,
+    entity_types: Res<EntityTypes>,
 ) {
-    let mut atlas_builder = TextureAtlasBuilder::default();
-    for handle in &entity_textures.handles {
-        let texture = textures.get(handle).unwrap();
-        atlas_builder.add_texture(handle.clone_weak().typed::<Image>(), texture);
-    }
-    let atlas = atlas_builder.finish(&mut textures).unwrap();
-
-    for frame in wolfgang_frames.frames_mut() {
-        let handle = asset_server.get_handle(&format!("entities/wolfgang/{}", frame.image));
-        frame.index = atlas
-            .get_texture_index(&handle)
-            .unwrap_or_else(|| panic!("Missing image: {}", frame.image));
-    }
-
-    let atlas_handle = texture_atlases.add(atlas);
-
     commands.spawn_bundle(OrthographicCameraBundle::new_2d());
     //commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("map/map.jpg"),
         transform: Transform {
-            translation: Vec3::new(0.0, 0.0, Z_MIN),
+            translation: Vec3::new(0.0, 0.0, 0.0),
             ..Default::default()
         },
         ..Default::default()
     });
 
-    commands
-        .spawn_bundle(SpriteSheetBundle {
-            texture_atlas: atlas_handle,
-            sprite: TextureAtlasSprite::new(0),
-            transform: Transform {
-                translation: Vec3::new(0.0, 0.0, z_index(0.0)),
-                ..Default::default()
-            },
-            ..Default::default()
-        })
-        .insert(Player {
-            animation: PlayerAnimation::Idle,
-            interact_direction: InteractDirection::Right,
-            frame_index: 0,
-        })
-        .insert(Timer::from_seconds(0.15, true));
-
-    commands.spawn_bundle(SpriteBundle {
-        texture: asset_server.load("entities/engine/Motor.png"),
-        transform: Transform {
-            translation: Vec3::new(500.0, 200.0, z_index(300.0 - 396.0 / 2.0)),
-            ..Default::default()
+    spawn_entity(
+        &mut commands,
+        entity_types.get("wolfgang").unwrap(),
+        Vec3::new(0.0, 0.0, 0.0),
+        Some("idle"),
+        |cmd| {
+            cmd.insert(Player {
+                interact_direction: InteractDirection::Right,
+            })
+            .insert(Timer::from_seconds(0.15, true));
         },
-        ..Default::default()
-    });
+    );
 }
 
 fn player_input(
@@ -166,9 +312,14 @@ fn player_input(
     gamepads: Res<Gamepads>,
     gamepad_axis: Res<Axis<GamepadAxis>>,
     gamepad_button: Res<Input<GamepadButton>>,
-    mut query: Query<(&mut Transform, &mut Player)>,
+    mut query: Query<(
+        &mut Transform,
+        &mut Player,
+        &mut AnimationState,
+        &mut Collision,
+    )>,
     time: Res<Time>,
-    blocking_query: Query<(&Blocking, &Transform, Without<Player>)>,
+    blocking_query: Query<(&Collision, &Transform, Without<Player>)>,
 ) {
     let mut input = PlayerInput::from_keys(key);
     input.merge(
@@ -176,61 +327,62 @@ fn player_input(
             .iter()
             .map(|gamepad| PlayerInput::from_gamepad(*gamepad, &gamepad_axis, &gamepad_button)),
     );
-    let (mut transform, mut player) = query.single_mut();
+    let (mut transform, mut player, mut animation, mut player_collision) = query.single_mut();
     let delta = time.delta().as_secs_f32();
 
-    player.animation = PlayerAnimation::Idle;
+    animation.animation = "idle";
 
     if input.y > 0.0 {
-        player.animation = PlayerAnimation::WalkUp;
+        animation.animation = "walk_up";
     } else if input.y < 0.0 {
-        player.animation = PlayerAnimation::WalkDown;
+        animation.animation = "walk_down";
     }
 
     if input.x > 0.0 {
-        player.animation = PlayerAnimation::WalkRight;
+        animation.animation = "walk_right";
         player.interact_direction = InteractDirection::Right;
     } else if input.x < 0.0 {
-        player.animation = PlayerAnimation::WalkLeft;
+        animation.animation = "walk_left";
         player.interact_direction = InteractDirection::Left;
     }
 
     if input.interact {
-        player.animation = match player.interact_direction {
-            InteractDirection::Left => PlayerAnimation::InteractLeft,
-            InteractDirection::Right => PlayerAnimation::InteractRight,
+        animation.animation = match player.interact_direction {
+            InteractDirection::Left => "interact_left",
+            InteractDirection::Right => "interact_right",
         };
     } else {
         transform.translation.x += input.x * PLAYER_SPEED * delta;
         transform.translation.y += input.y * PLAYER_SPEED * delta;
-        // FIXME hardcoded player size... meh...
-        transform.translation.z = z_index(transform.translation.y - 128.0);
+        transform.translation.z = player_collision.update_position(transform.translation);
 
+        /* FIXME this code is currently broken
         // now make sure we're not colliding with anything
         for (blocking, blocking_transform, _) in blocking_query.iter() {
-            // FIXME hardcoded sizes
             if let Some(collision) = collide(
-                transform.translation + Vec3::new(0.0, -64.0, 0.0),
-                Vec2::new(128.0, 64.0),
+                player_collision.pos,
+                player_collision.size,
                 blocking.pos,
                 blocking.size,
             ) {
                 match collision {
-                    Collision::Left => {
-                        transform.translation.x = blocking.pos.x - blocking.size.x / 2.0 - 64.0;
+                    BevyCollision::Left => {
+                        transform.translation.x =
                     }
-                    Collision::Right => {
-                        transform.translation.x = blocking.pos.x + blocking.size.x / 2.0 + 64.0;
+                    BevyCollision::Right => {
+                        transform.translation.x =
                     }
-                    Collision::Top => {
-                        transform.translation.y = blocking.pos.y + blocking.size.y / 2.0 + 96.0;
+                    BevyCollision::Top => {
+                        transform.translation.y =
                     }
-                    Collision::Bottom => {
-                        transform.translation.y = blocking.pos.y - blocking.size.y / 2.0 + 32.0;
+                    BevyCollision::Bottom => {
+                        transform.translation.y =
                     }
+                    _ => {}
                 }
             }
         }
+         */
     }
 }
 
@@ -245,37 +397,23 @@ fn camera_system(
     }
 }
 
-fn animate_sprite_system(
+fn animation_system(
     time: Res<Time>,
-    frames: Res<WolfgangFrames>,
-    texture_atlases: Res<Assets<TextureAtlas>>,
     mut query: Query<(
         &mut Timer,
         &mut TextureAtlasSprite,
-        &Handle<TextureAtlas>,
-        &mut Player,
+        &Animation,
+        &mut AnimationState,
     )>,
-    asset_server: Res<AssetServer>,
-    mut wolfgang_frames: Res<WolfgangFrames>,
 ) {
-    let vendor_handle: Handle<TextureAtlasSprite> =
-        asset_server.get_handle("entities/wolfgang/Wolfgang_RunL_00001.png");
-    for (mut timer, mut sprite, texture_atlas, mut player) in query.iter_mut() {
+    for (mut timer, mut sprite, animation, mut state) in query.iter_mut() {
         timer.tick(time.delta());
         if timer.finished() {
-            let frames = match player.animation {
-                PlayerAnimation::Idle => &wolfgang_frames.idle,
-                PlayerAnimation::WalkLeft => &wolfgang_frames.walk_left,
-                PlayerAnimation::WalkRight => &wolfgang_frames.walk_right,
-                PlayerAnimation::WalkUp => &wolfgang_frames.walk_up,
-                PlayerAnimation::WalkDown => &wolfgang_frames.walk_down,
-                PlayerAnimation::InteractLeft => &wolfgang_frames.interact_left,
-                PlayerAnimation::InteractRight => &wolfgang_frames.interact_right,
-            };
-            player.frame_index = (player.frame_index + 1) % frames.len();
-            let frame = &frames[player.frame_index];
-            sprite.index = frame.index;
-            timer.set_duration(std::time::Duration::from_millis(frame.duration));
+            let frames = &animation.frames[state.animation];
+            state.index = (state.index + 1) % frames.len();
+            let (atlas_index, duration) = frames[state.index];
+            sprite.index = atlas_index;
+            timer.set_duration(duration);
         }
     }
 }
@@ -285,16 +423,13 @@ fn start_background_audio(asset_server: Res<AssetServer>, audio: Res<Audio>) {
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
-    let yaml = std::fs::File::open("assets/entities/wolfgang.yaml")?;
-    let wolfgang_frames: WolfgangFrames = serde_yaml::from_reader(yaml)?;
-
-    let yaml = std::fs::File::open("assets/map/map.yaml")?;
-    let map: Map = serde_yaml::from_reader(yaml)?;
+    let map = load_map()?;
+    let entity_types = load_entity_types()?;
 
     App::new()
-        .init_resource::<EntityTextures>()
-        .insert_resource(wolfgang_frames)
+        .init_resource::<ImageHandles>()
         .insert_resource(map)
+        .insert_resource(entity_types)
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_state(AppState::Setup)
@@ -309,7 +444,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .add_system_set(
             SystemSet::on_update(AppState::Finished)
                 .with_system(player_input)
-                .with_system(animate_sprite_system)
+                .with_system(animation_system)
                 .with_system(camera_system),
         )
         .run();

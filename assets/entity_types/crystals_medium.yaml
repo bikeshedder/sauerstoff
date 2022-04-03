@@ -1,0 +1,8 @@
+image: "Crystals_Medium.png"
+width: 454
+height: 423
+collision:
+  x: 7
+  y: 164
+  width: 179
+  height: 86

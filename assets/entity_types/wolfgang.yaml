@@ -1,0 +1,91 @@
+width: 256
+height: 256
+collision:
+  x: 93
+  y: 169
+  width: 69
+  height: 50
+animations:
+  idle:
+    - image: "Wolfgang_IDLE_00013.png"
+      duration: 400
+    - image: "Wolfgang_IDLE_00014.png"
+      duration: 400
+    - image: "Wolfgang_IDLE_00015.png"
+      duration: 800
+    - image: "Wolfgang_IDLE_00014.png"
+      duration: 400
+    - image: "Wolfgang_IDLE_00013.png"
+      duration: 400
+
+  walk_left:
+    - image: "Wolfgang_RunL_00001.png"
+      duration: 200
+    - image: "Wolfgang_RunL_00002.png"
+      duration: 200
+    - image: "Wolfgang_RunL_00003.png"
+      duration: 200
+    - image: "Wolfgang_RunL_00002.png"
+      duration: 200
+
+  walk_right:
+    - image: "Wolfgang_RunR_00004.png"
+      duration: 200
+    - image: "Wolfgang_RunR_00005.png"
+      duration: 200
+    - image: "Wolfgang_RunR_00006.png"
+      duration: 200
+    - image: "Wolfgang_RunR_00005.png"
+      duration: 200
+
+  walk_up:
+    - image: "Wolfgang_RunBack_00007.png"
+      duration: 200
+    - image: "Wolfgang_RunBack_00008.png"
+      duration: 200
+    - image: "Wolfgang_RunBack_00009.png"
+      duration: 200
+    - image: "Wolfgang_RunBack_00008.png"
+      duration: 200
+
+  walk_down:
+    - image: "Wolfgang_Front_00010.png"
+      duration: 200
+    - image: "Wolfgang_Front_00011.png"
+      duration: 200
+    - image: "Wolfgang_Front_00012.png"
+      duration: 200
+    - image: "Wolfgang_Front_00011.png"
+      duration: 200
+
+  interact_left:
+    - image: "Wolfgang_ActL_00016.png"
+      duration: 150
+    - image: "Wolfgang_ActL_00017.png"
+      duration: 150
+    - image: "Wolfgang_ActL_00018.png"
+      duration: 150
+    - image: "Wolfgang_ActL_00019.png"
+      duration: 350
+    - image: "Wolfgang_ActL_00018.png"
+      duration: 50
+    - image: "Wolfgang_ActL_00017.png"
+      duration: 50
+    - image: "Wolfgang_ActL_00016.png"
+      duration: 350
+
+  interact_right:
+    - image: "Wolfgang_ActR_00020.png"
+      duration: 150
+    - image: "Wolfgang_ActR_00021.png"
+      duration: 150
+    - image: "Wolfgang_ActR_00022.png"
+      duration: 150
+    - image: "Wolfgang_ActR_00023.png"
+      duration: 350
+    - image: "Wolfgang_ActR_00022.png"
+      duration: 50
+    - image: "Wolfgang_ActR_00021.png"
+      duration: 50
+    - image: "Wolfgang_ActR_00020.png"
+      duration: 350

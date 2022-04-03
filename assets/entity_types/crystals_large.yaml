@@ -1,0 +1,8 @@
+image: "Crystals_Large.png"
+width: 241
+height: 190
+collision:
+  x: 65
+  y: 315
+  width: 208
+  height: 79

@@ -1,0 +1,19 @@
+c1:
+  type: crystals_large
+  x: -300
+  y: -500
+
+c2:
+  type: crystals_medium
+  x: -400
+  y: -200
+
+c3:
+  type: crystals_small
+  x: 0
+  y: -600
+
+engine:
+  type: engine
+  x: 500
+  y: 500

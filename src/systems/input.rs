@@ -1,11 +1,17 @@
 use bevy::prelude::*;
 
+use crate::components::{
+    animation::AnimationState,
+    collision::Collision,
+    player::{InteractDirection, Player, PLAYER_SPEED},
+};
+
 #[derive(Debug)]
 pub struct PlayerInput {
     pub x: f32,
     pub y: f32,
     pub interact: bool,
-    pub back: bool
+    pub back: bool,
 }
 
 fn key_to_analog(key: &Res<Input<KeyCode>>, codes: &[KeyCode], value: f32) -> f32 {
@@ -33,7 +39,7 @@ impl PlayerInput {
     pub fn from_gamepad(
         gamepad: Gamepad,
         axis: &Res<Axis<GamepadAxis>>,
-        button: &Res<Input<GamepadButton>>
+        button: &Res<Input<GamepadButton>>,
     ) -> Self {
         let axis_lx = GamepadAxis(gamepad, GamepadAxisType::LeftStickX);
         let axis_ly = GamepadAxis(gamepad, GamepadAxisType::LeftStickY);
@@ -46,10 +52,7 @@ impl PlayerInput {
             back: button.just_pressed(back),
         }
     }
-    pub fn merge(
-        &mut self,
-        inputs: impl Iterator<Item = PlayerInput>
-    ) {
+    pub fn merge(&mut self, inputs: impl Iterator<Item = PlayerInput>) {
         for input in inputs {
             self.x += input.x;
             self.y += input.y;
@@ -58,5 +61,84 @@ impl PlayerInput {
         }
         self.x = self.x.clamp(-1.0, 1.0);
         self.y = self.y.clamp(-1.0, 1.0);
+    }
+}
+
+pub fn player_input(
+    key: Res<Input<KeyCode>>,
+    gamepads: Res<Gamepads>,
+    gamepad_axis: Res<Axis<GamepadAxis>>,
+    gamepad_button: Res<Input<GamepadButton>>,
+    mut query: Query<(
+        &mut Transform,
+        &mut Player,
+        &mut AnimationState,
+        &mut Collision,
+    )>,
+    time: Res<Time>,
+    blocking_query: Query<(&Collision, &Transform, Without<Player>)>,
+) {
+    let mut input = PlayerInput::from_keys(key);
+    input.merge(
+        gamepads
+            .iter()
+            .map(|gamepad| PlayerInput::from_gamepad(*gamepad, &gamepad_axis, &gamepad_button)),
+    );
+    let (mut transform, mut player, mut animation, mut player_collision) = query.single_mut();
+    let delta = time.delta().as_secs_f32();
+
+    animation.animation = "idle";
+
+    if input.y > 0.0 {
+        animation.animation = "walk_up";
+    } else if input.y < 0.0 {
+        animation.animation = "walk_down";
+    }
+
+    if input.x > 0.0 {
+        animation.animation = "walk_right";
+        player.interact_direction = InteractDirection::Right;
+    } else if input.x < 0.0 {
+        animation.animation = "walk_left";
+        player.interact_direction = InteractDirection::Left;
+    }
+
+    if input.interact {
+        animation.animation = match player.interact_direction {
+            InteractDirection::Left => "interact_left",
+            InteractDirection::Right => "interact_right",
+        };
+    } else {
+        transform.translation.x += input.x * PLAYER_SPEED * delta;
+        transform.translation.y += input.y * PLAYER_SPEED * delta;
+        transform.translation.z = player_collision.update_position(transform.translation);
+
+        /* FIXME this code is currently broken
+        // now make sure we're not colliding with anything
+        for (blocking, blocking_transform, _) in blocking_query.iter() {
+            if let Some(collision) = collide(
+                player_collision.pos,
+                player_collision.size,
+                blocking.pos,
+                blocking.size,
+            ) {
+                match collision {
+                    BevyCollision::Left => {
+                        transform.translation.x =
+                    }
+                    BevyCollision::Right => {
+                        transform.translation.x =
+                    }
+                    BevyCollision::Top => {
+                        transform.translation.y =
+                    }
+                    BevyCollision::Bottom => {
+                        transform.translation.y =
+                    }
+                    _ => {}
+                }
+            }
+        }
+         */
     }
 }

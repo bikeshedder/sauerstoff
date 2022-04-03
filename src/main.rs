@@ -1,4 +1,4 @@
-use bevy::{ecs::system::EntityCommands, prelude::*};
+use bevy::{ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode};
 use bevy_kira_audio::AudioPlugin;
 
 use components::{
@@ -119,7 +119,13 @@ fn spawn_entity(
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
     commands
-        .spawn_bundle(OrthographicCameraBundle::new_2d())
+        .spawn_bundle({
+            let mut bundle = OrthographicCameraBundle::new_2d();
+            let proj = &mut bundle.orthographic_projection;
+            proj.scaling_mode = ScalingMode::FixedHorizontal;
+            proj.scale = 1920.0;
+            bundle
+        })
         .insert(FollowCam {});
     commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(SpriteBundle {

@@ -9,7 +9,6 @@ use bevy::{
 
 use crate::{
     data::entity_types::{EntityImage, EntityTypes, Loaded, LoadedAnimations},
-    resources::map::Map,
     AppState, ImageHandles,
 };
 
@@ -17,7 +16,6 @@ pub fn load_textures(
     mut entity_types: ResMut<EntityTypes>,
     mut image_handles: ResMut<ImageHandles>,
     asset_server: Res<AssetServer>,
-    mut map: ResMut<Map>,
 ) {
     for entity_type in entity_types.values_mut() {
         match &entity_type.image {

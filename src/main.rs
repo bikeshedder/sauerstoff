@@ -1,6 +1,4 @@
-use bevy::{
-    core::FixedTimestep, ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode,
-};
+use bevy::{ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode};
 use bevy_kira_audio::AudioPlugin;
 
 use components::{

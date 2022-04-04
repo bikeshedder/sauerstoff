@@ -1,5 +1,3 @@
-use std::cmp::Ordering;
-
 use bevy::{
     core::Time,
     prelude::{Query, Res, Transform, Without},

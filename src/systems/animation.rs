@@ -1,6 +1,6 @@
 use bevy::{
     core::{Time, Timer},
-    prelude::{Changed, Query, Res},
+    prelude::{Query, Res},
     sprite::TextureAtlasSprite,
 };
 

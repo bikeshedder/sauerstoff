@@ -1,6 +1,6 @@
-use bevy::math::{Mat3, Mat4, Quat, Vec3};
+use bevy::math::{Mat4, Quat, Vec3};
 use bresenham::Bresenham;
-use image::{DynamicImage, GrayImage, ImageBuffer};
+use image::GrayImage;
 
 pub struct Map {
     collision_map: GrayImage,
@@ -32,7 +32,6 @@ impl Map {
         let img_source = mat.transform_point3(source);
         let img_source = (img_source.x as isize, img_source.y as isize);
         // FIXME make sure x and y aren't completely out of bounds
-        let z = Bresenham::new(img_target, img_source).collect::<Vec<_>>();
         let last_non_colliding = Bresenham::new(img_source, img_target)
             .take_while(|(x, y)| self.collision_map.get_pixel(*x as u32, *y as u32).0[0] > 0)
             .last();

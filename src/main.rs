@@ -21,7 +21,7 @@ use systems::{
     interaction::detect_interaction,
     item::{item_bobbing, spawn_item},
     map::initialize_map,
-    music::music_system,
+    music::{music_scene, music_system},
     player::player_system,
     textures::{check_textures, load_textures},
 };
@@ -208,7 +208,8 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_system(animation_system)
                 .with_system(detect_interaction)
                 .with_system(camera_system)
-                .with_system(item_bobbing),
+                .with_system(item_bobbing)
+                .with_system(music_scene),
         )
         .run();
 

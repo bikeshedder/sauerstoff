@@ -50,27 +50,29 @@ impl Collision {
     /// and return the new entity transformation if a collision
     /// was detected.
     pub fn collide(&mut self, translation: Vec3, other: &Self) -> Option<Vec3> {
-        collide(self.pos, self.size, other.pos, other.size).map(|collision| match collision {
-            BevyCollision::Left => Vec3::new(
-                other.pos.x - other.size.x / 2.0 - self.size.x / 2.0 - self.origin.x,
-                translation.y,
-                translation.z,
-            ),
-            BevyCollision::Right => Vec3::new(
-                other.pos.x + other.size.x / 2.0 + self.size.x / 2.0 - self.origin.x,
-                translation.y,
-                translation.z,
-            ),
-            BevyCollision::Top => Vec3::new(
-                translation.x,
-                other.pos.y + other.size.y / 2.0 + self.size.y / 2.0 - self.origin.y,
-                translation.z,
-            ),
-            BevyCollision::Bottom => Vec3::new(
-                translation.x,
-                other.pos.y - other.size.y / 2.0 - self.size.y / 2.0 - self.origin.y,
-                translation.z,
-            ),
+        collide(translation + self.origin, self.size, other.pos, other.size).map(|collision| {
+            match collision {
+                BevyCollision::Left => Vec3::new(
+                    other.pos.x - other.size.x / 2.0 - self.size.x / 2.0 - self.origin.x,
+                    translation.y,
+                    translation.z,
+                ),
+                BevyCollision::Right => Vec3::new(
+                    other.pos.x + other.size.x / 2.0 + self.size.x / 2.0 - self.origin.x,
+                    translation.y,
+                    translation.z,
+                ),
+                BevyCollision::Top => Vec3::new(
+                    translation.x,
+                    other.pos.y + other.size.y / 2.0 + self.size.y / 2.0 - self.origin.y,
+                    translation.z,
+                ),
+                BevyCollision::Bottom => Vec3::new(
+                    translation.x,
+                    other.pos.y - other.size.y / 2.0 - self.size.y / 2.0 - self.origin.y,
+                    translation.z,
+                ),
+            }
         })
     }
 }

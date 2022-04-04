@@ -93,6 +93,7 @@ pub struct Player {
     pub input: PlayerInput,
     pub state: PlayerState,
     pub interact_direction: InteractDirection,
+    pub direction: PlayerDirection,
     pub center: Vec3,
 }
 
@@ -122,6 +123,7 @@ impl Default for Player {
         Self {
             input: PlayerInput::default(),
             state: PlayerState::Idle,
+            direction: PlayerDirection::Right,
             interact_direction: InteractDirection::Right,
             center: Vec3::new(0.0, -40.0, 0.0),
         }

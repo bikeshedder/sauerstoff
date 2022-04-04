@@ -1,5 +1,6 @@
 use bevy::{
     core::Time,
+    math::vec3,
     prelude::{Query, Res, Transform, Without},
 };
 
@@ -28,51 +29,76 @@ pub fn player_system(
     let (mut player, mut transform, mut animation, mut player_collision) = query.single_mut();
     let delta = time.delta().as_secs_f32();
 
-    let mut new_animation = match player.primary_direction() {
-        Some(PlayerDirection::Left) => {
-            player.interact_direction = InteractDirection::Left;
-            "walk_left"
+    if let Some(direction) = player.primary_direction() {
+        player.direction = direction;
+        match direction {
+            PlayerDirection::Left => {
+                player.state = PlayerState::Walk;
+                player.interact_direction = InteractDirection::Left;
+            }
+            PlayerDirection::Right => {
+                player.state = PlayerState::Walk;
+                player.interact_direction = InteractDirection::Right;
+            }
+            PlayerDirection::Up => {
+                player.state = PlayerState::Walk;
+            }
+            PlayerDirection::Down => {
+                player.state = PlayerState::Walk;
+            }
         }
-        Some(PlayerDirection::Right) => {
-            player.interact_direction = InteractDirection::Right;
-            "walk_right"
-        }
-        Some(PlayerDirection::Up) => "walk_up",
-        Some(PlayerDirection::Down) => "walk_down",
-        _ => "idle",
-    };
-
-    let old_translation = transform.translation;
+    } else {
+        player.state = PlayerState::Idle;
+    }
 
     if player.input.interact {
-        new_animation = match player.interact_direction {
-            InteractDirection::Left => "interact_left",
-            InteractDirection::Right => "interact_right",
-        };
-        animation.start(new_animation);
-        return;
-    }
-
-    animation.start(new_animation);
-
-    if player.input.x == 0.0 && player.input.y == 0.0 {
-        return;
-    }
-
-    transform.translation.x += player.input.x * PLAYER_SPEED * delta;
-    transform.translation.y += player.input.y * PLAYER_SPEED * delta;
-    transform.translation.z = player_collision.update_position(transform.translation);
-
-    // now make sure we're not colliding with anything
-    for (entity_collision, _) in collision_query.iter() {
-        if let Some(trans) = player_collision.collide(transform.translation, entity_collision) {
-            transform.translation = trans;
+        player.state = PlayerState::Interact;
+        // FIXME once there are animations for interact_up and
+        // interact_down the interact_direction is rendered obsolete
+        // and this hack can go away.
+        player.direction = match player.interact_direction {
+            InteractDirection::Right => PlayerDirection::Right,
+            InteractDirection::Left => PlayerDirection::Left,
         }
     }
 
-    // check collision with the world
-    if let Some(translation) = map_collision.collide(old_translation, transform.translation) {
-        transform.translation = translation;
-        transform.translation.z = player_collision.update_position(transform.translation);
+    if player.state == PlayerState::Walk {
+        // move player to new position
+        let mut new_translation = vec3(
+            transform.translation.x + player.input.x * PLAYER_SPEED * delta,
+            transform.translation.y + player.input.y * PLAYER_SPEED * delta,
+            0.0,
+        );
+
+        // now make sure we're not colliding with anything
+        for (entity_collision, _) in collision_query.iter() {
+            if let Some(trans) = player_collision.collide(new_translation, entity_collision) {
+                new_translation = trans;
+            }
+        }
+
+        // check collision with the world
+        if let Some(trans) = map_collision.collide(transform.translation, new_translation) {
+            new_translation = trans;
+        }
+
+        // update player position
+        transform.translation = vec3(
+            new_translation.x,
+            new_translation.y,
+            player_collision.update_position(new_translation),
+        );
     }
+
+    animation.start(match (player.state, player.direction) {
+        (PlayerState::Idle, _) => "idle",
+        (PlayerState::Walk, PlayerDirection::Right) => "walk_right",
+        (PlayerState::Walk, PlayerDirection::Left) => "walk_left",
+        (PlayerState::Walk, PlayerDirection::Up) => "walk_up",
+        (PlayerState::Walk, PlayerDirection::Down) => "walk_down",
+        (PlayerState::Interact, PlayerDirection::Left) => "interact_left",
+        (PlayerState::Interact, PlayerDirection::Right) => "interact_right",
+        (PlayerState::Interact, PlayerDirection::Up) => "interact_up",
+        (PlayerState::Interact, PlayerDirection::Down) => "interact_down",
+    });
 }

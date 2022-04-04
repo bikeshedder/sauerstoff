@@ -29,6 +29,22 @@ impl Map {
         );
         let img_target = mat.transform_point3(target);
         let img_target = (img_target.x as isize, img_target.y as isize);
+        // The bresenham algorithm does not yield the last coordinate.
+        // We skip the entire algorithm if the target coordinate is
+        // non-blocking. One fair warning: This allows skipping over
+        // blocking-terrain if the movement speed is high enough and
+        // skips that blocking terrain in one frame.
+        if self
+            .collision_map
+            .get_pixel(
+                img_target.0.try_into().unwrap(),
+                img_target.1.try_into().unwrap(),
+            )
+            .0[0]
+            > 0
+        {
+            return None;
+        }
         let img_source = mat.transform_point3(source);
         let img_source = (img_source.x as isize, img_source.y as isize);
         // FIXME make sure x and y aren't completely out of bounds

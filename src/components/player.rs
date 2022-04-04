@@ -58,11 +58,15 @@ impl PlayerInput {
     ) -> Self {
         let axis_lx = GamepadAxis(gamepad, GamepadAxisType::LeftStickX);
         let axis_ly = GamepadAxis(gamepad, GamepadAxisType::LeftStickY);
+        let axis_dx = GamepadAxis(gamepad, GamepadAxisType::DPadX);
+        let axis_dy = GamepadAxis(gamepad, GamepadAxisType::DPadY);
         let interact = GamepadButton(gamepad, GamepadButtonType::South);
         let back = GamepadButton(gamepad, GamepadButtonType::East);
         Self {
-            x: axis.get(axis_lx).unwrap_or(0.0),
-            y: axis.get(axis_ly).unwrap_or(0.0),
+            x: (axis.get(axis_lx).unwrap_or(0.0) + axis.get(axis_dx).unwrap_or(0.0))
+                .clamp(-1.0, 1.0),
+            y: (axis.get(axis_ly).unwrap_or(0.0) + axis.get(axis_dy).unwrap_or(0.0))
+                .clamp(-1.0, 1.0),
             interact: button.pressed(interact),
             back: button.just_pressed(back),
         }

@@ -13,6 +13,9 @@ opt-level = 1
 [profile.dev.package."*"]
 opt-level = 3
 
+[profile.release]
+strip = "debuginfo"
+
 [dependencies]
 anyhow = "1.0.56"
 bresenham = "0.1.1"

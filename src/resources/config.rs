@@ -8,6 +8,7 @@ pub struct Config {
 #[derive(Debug, Deserialize)]
 pub struct AudioConfig {
     pub music_volume: f32,
+    pub effects_volume: f32,
 }
 
 impl Config {

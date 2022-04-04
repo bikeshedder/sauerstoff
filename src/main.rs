@@ -1,4 +1,6 @@
-use bevy::{ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode};
+use bevy::{
+    core::FixedTimestep, ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode,
+};
 use bevy_kira_audio::AudioPlugin;
 
 use components::{
@@ -13,6 +15,7 @@ use data::{
     map::load_map,
 };
 use helpers::z_index;
+use resources::{audio::AudioChannels, config::Config, map::Map};
 use systems::{
     animation::animation_system,
     camera::camera_system,
@@ -28,6 +31,7 @@ use systems::{
 mod components;
 mod data;
 mod helpers;
+mod resources;
 mod systems;
 
 #[derive(Debug, Clone, PartialEq, Eq, Hash)]
@@ -123,7 +127,7 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
             let mut bundle = OrthographicCameraBundle::new_2d();
             let proj = &mut bundle.orthographic_projection;
             proj.scaling_mode = ScalingMode::FixedHorizontal;
-            proj.scale = 1920.0;
+            proj.scale = 1920.0 / 2.0;
             bundle
         })
         .insert(FollowCam {});
@@ -169,18 +173,28 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
     spawn_item(&mut commands, asset_server);
 }
 
+fn resize_window(mut windows: ResMut<Windows>) {
+    let window = windows.get_primary_mut().unwrap();
+    window.set_resolution(1920.0, 1080.0);
+}
+
 fn main() -> Result<(), Box<dyn std::error::Error>> {
+    let config = Config::load();
     let map = load_map()?;
     let entity_types = load_entity_types()?;
 
     App::new()
+        .insert_resource(config)
         .init_resource::<ImageHandles>()
+        .init_resource::<Map>()
+        .init_resource::<AudioChannels>()
         .insert_resource(map)
         .insert_resource(entity_types)
         .add_plugins(DefaultPlugins)
         .add_plugin(AudioPlugin)
         .add_state(AppState::Setup)
-        //.add_startup_system(music_system)
+        .add_startup_system(music_system)
+        .add_startup_system(resize_window)
         .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_textures))
         .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_textures))
         .add_system_set(
@@ -190,6 +204,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         )
         .add_system_set(
             SystemSet::on_update(AppState::Finished)
+                //.with_run_criteria(FixedTimestep::step(1.0 / 60.0))
                 .with_system(player_input)
                 .with_system(player_system)
                 .with_system(animation_system)

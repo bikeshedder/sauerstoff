@@ -49,7 +49,7 @@ impl Collision {
     /// Check collision with annother `Collision` object
     /// and return the new entity transformation if a collision
     /// was detected.
-    pub fn collide(&mut self, translation: &Vec3, other: &Self) -> Option<Vec3> {
+    pub fn collide(&mut self, translation: Vec3, other: &Self) -> Option<Vec3> {
         collide(self.pos, self.size, other.pos, other.size).map(|collision| match collision {
             BevyCollision::Left => Vec3::new(
                 other.pos.x - other.size.x / 2.0 - self.size.x / 2.0 - self.origin.x,

@@ -23,11 +23,6 @@ pub struct EntityType {
     pub loaded: Option<Loaded>,
 }
 
-enum GenericError {
-    Message(String),
-    IoError(std::io::Error),
-}
-
 #[derive(Debug)]
 pub enum Loaded {
     Static(Handle<Image>),

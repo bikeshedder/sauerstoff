@@ -13,9 +13,9 @@ use data::{
     map::load_map,
 };
 use helpers::z_index;
-use resources::{audio::AudioChannels, config::Config, map::Map};
+use resources::{config::Config, map::Map};
 use systems::{
-    animation::animation_system,
+    animation::{animation_system, AnimationTimer},
     camera::camera_system,
     input::player_input,
     interaction::detect_interaction,
@@ -122,14 +122,12 @@ fn spawn_entity(
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
     commands
         .spawn_bundle({
-            let mut bundle = OrthographicCameraBundle::new_2d();
-            let proj = &mut bundle.orthographic_projection;
-            proj.scaling_mode = ScalingMode::FixedHorizontal;
-            proj.scale = 1920.0 / 2.0;
+            let mut bundle = Camera2dBundle::default();
+            let proj = &mut bundle.projection;
+            proj.scaling_mode = ScalingMode::FixedHorizontal(1920.0);
             bundle
         })
         .insert(FollowCam {});
-    commands.spawn_bundle(UiCameraBundle::default());
     commands.spawn_bundle(SpriteBundle {
         texture: asset_server.load("map/map.jpg"),
         transform: Transform {
@@ -147,23 +145,22 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
         |cmd| {
             cmd.insert(Player::default())
                 // XXX initial timer value?
-                .insert(Timer::from_seconds(0.1, true));
+                .insert(AnimationTimer::from_seconds(0.1, true));
         },
     );
 
     commands.spawn_bundle(TextBundle {
         style: Style {
-            margin: Rect::all(Val::Px(5.0)),
+            margin: UiRect::all(Val::Px(5.0)),
             ..Default::default()
         },
-        text: Text::with_section(
+        text: Text::from_section(
             "Text Example",
             TextStyle {
                 font: asset_server.load("fonts/FiraSans-Bold.ttf"),
                 font_size: 30.0,
                 color: Color::WHITE,
             },
-            Default::default(),
         ),
         ..Default::default()
     });
@@ -185,7 +182,6 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
         .insert_resource(config)
         .init_resource::<ImageHandles>()
         .init_resource::<Map>()
-        .init_resource::<AudioChannels>()
         .insert_resource(map)
         .insert_resource(entity_types)
         .add_plugins(DefaultPlugins)

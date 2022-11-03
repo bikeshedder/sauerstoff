@@ -19,9 +19,27 @@ strip = "debuginfo"
 [dependencies]
 anyhow = "1.0.56"
 bresenham = "0.1.1"
-bevy = { version = "0.6.1", features = ["dynamic", "jpeg"] }
-bevy_kira_audio = { version = "0.8.0", features = ["mp3"] }
+bevy_kira_audio = { version = "0.12.0" }
 image = { version = "0.24", default-features = false, features = ["png"] }
 itertools = "0.10.3"
 serde = { version = "1.0.136", features = ["derive"] }
 serde_yaml = "0.8.23"
+
+[dependencies.bevy]
+version = "0.8.1"
+default-features = false
+features = [
+    "animation",
+    "bevy_asset",
+    #"bevy_audio",
+    "bevy_gilrs",
+    "bevy_scene",
+    "bevy_winit",
+    "render",
+    "png",
+    "hdr",
+    #"vorbis",
+    "x11",
+    "filesystem_watcher",
+    "jpeg"
+]

@@ -69,7 +69,7 @@ pub fn check_textures(
                                     .map(|frame| {
                                         let file_name = format!("entities/{}", frame.image);
                                         let handle = asset_server.get_handle(&file_name);
-                                        let texture = textures.get(&file_name).unwrap();
+                                        let texture = textures.get(&handle).unwrap();
                                         atlas_builder.add_texture(handle.clone(), texture);
                                         (handle, Duration::from_millis(frame.duration))
                                     })
@@ -79,7 +79,7 @@ pub fn check_textures(
                         .collect();
                     let atlas = atlas_builder.finish(&mut textures).unwrap();
                     let atlas_handle = texture_atlases.add(atlas);
-                    let atlas = texture_atlases.get(atlas_handle.clone()).unwrap();
+                    let atlas = texture_atlases.get(&atlas_handle).unwrap();
                     entity_type.loaded = Some(Loaded::Animations(LoadedAnimations {
                         atlas: atlas_handle,
                         frames: frame_handles

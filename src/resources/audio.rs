@@ -1,9 +1,9 @@
-use bevy_kira_audio::AudioChannel;
+use bevy::prelude::Handle;
+use bevy_kira_audio::AudioInstance;
 
-#[derive(Default)]
-pub struct AudioChannels {
-    pub music_1: AudioChannel,
-    pub music_2: AudioChannel,
-    pub footsteps: AudioChannel,
-    pub sigh: AudioChannel,
+pub struct AudioInstances {
+    pub music1: Handle<AudioInstance>,
+    pub music2: Handle<AudioInstance>,
+    pub sigh: Handle<AudioInstance>,
+    pub footsteps: Handle<AudioInstance>,
 }

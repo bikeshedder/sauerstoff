@@ -1,4 +1,4 @@
-use bevy::{core::Stopwatch, prelude::Component};
+use bevy::{prelude::Component, time::Stopwatch};
 
 #[derive(Component, Debug)]
 pub struct Item {}

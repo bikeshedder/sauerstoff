@@ -8,7 +8,7 @@ pub fn camera_system(
 ) {
     let (_, player_transform, _) = player_query.single();
     if let Ok((_, mut transform, _)) = camera_query.get_single_mut() {
-        transform.translation.x = player_transform.translation.x.clamp(-2880.0, 2880.0);
-        transform.translation.y = player_transform.translation.y.clamp(-1620.0, 1620.0);
+        transform.translation.x = player_transform.translation.x.clamp(-1920.0, 1920.0);
+        transform.translation.y = player_transform.translation.y.clamp(-1080.0, 1080.0);
     }
 }

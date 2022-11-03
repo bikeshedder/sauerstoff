@@ -56,17 +56,51 @@ impl PlayerInput {
         axis: &Res<Axis<GamepadAxis>>,
         button: &Res<Input<GamepadButton>>,
     ) -> Self {
-        let axis_lx = GamepadAxis(gamepad, GamepadAxisType::LeftStickX);
-        let axis_ly = GamepadAxis(gamepad, GamepadAxisType::LeftStickY);
-        let axis_dx = GamepadAxis(gamepad, GamepadAxisType::DPadX);
-        let axis_dy = GamepadAxis(gamepad, GamepadAxisType::DPadY);
-        let interact = GamepadButton(gamepad, GamepadButtonType::South);
-        let back = GamepadButton(gamepad, GamepadButtonType::East);
+        let axis_lx = GamepadAxis {
+            gamepad,
+            axis_type: GamepadAxisType::LeftStickX,
+        };
+        let axis_ly = GamepadAxis {
+            gamepad,
+            axis_type: GamepadAxisType::LeftStickY,
+        };
+        let dpad_left = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::DPadLeft,
+        };
+        let dpad_right = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::DPadRight,
+        };
+        let dpad_up = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::DPadUp,
+        };
+        let dpad_down = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::DPadDown,
+        };
+        let interact = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::South,
+        };
+        let back = GamepadButton {
+            gamepad,
+            button_type: GamepadButtonType::East,
+        };
+        let dpadx = match (button.pressed(dpad_left), button.pressed(dpad_right)) {
+            (true, false) => -1.0,
+            (false, true) => 1.0,
+            _ => 0.0,
+        };
+        let dpady = match (button.pressed(dpad_up), button.pressed(dpad_down)) {
+            (true, false) => -1.0,
+            (false, true) => 1.0,
+            _ => 0.0,
+        };
         Self {
-            x: (axis.get(axis_lx).unwrap_or(0.0) + axis.get(axis_dx).unwrap_or(0.0))
-                .clamp(-1.0, 1.0),
-            y: (axis.get(axis_ly).unwrap_or(0.0) + axis.get(axis_dy).unwrap_or(0.0))
-                .clamp(-1.0, 1.0),
+            x: (axis.get(axis_lx).unwrap_or(0.0) + dpadx).clamp(-1.0, 1.0),
+            y: (axis.get(axis_ly).unwrap_or(0.0) + dpady).clamp(-1.0, 1.0),
             interact: button.pressed(interact),
             back: button.just_pressed(back),
         }

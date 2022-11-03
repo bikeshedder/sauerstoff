@@ -72,6 +72,8 @@ impl Collision {
                     other.pos.y - other.size.y / 2.0 - self.size.y / 2.0 - self.origin.y,
                     translation.z,
                 ),
+                // FIXME How to handle inside collision?
+                BevyCollision::Inside => translation,
             }
         })
     }

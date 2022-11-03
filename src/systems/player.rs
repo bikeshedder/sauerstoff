@@ -1,7 +1,7 @@
 use bevy::{
-    core::Time,
     math::vec3,
     prelude::{Query, Res, Transform, Without},
+    time::Time,
 };
 
 use crate::{

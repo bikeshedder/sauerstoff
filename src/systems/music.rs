@@ -1,60 +1,88 @@
-use bevy::{
-    prelude::{AssetServer, Query, Res, ResMut, Transform},
-    transform,
-};
-use bevy_kira_audio::{Audio, AudioChannel};
+use bevy::prelude::{AssetServer, Assets, Commands, Query, Res, ResMut, Transform};
+use bevy_kira_audio::{Audio, AudioControl, AudioInstance, AudioTween};
 
 use crate::{
     components::player::{Player, PlayerState},
-    resources::{audio::AudioChannels, config::Config},
+    resources::{audio::AudioInstances, config::Config},
 };
 
 pub fn music_system(
-    mut channels: ResMut<AudioChannels>,
+    mut commands: Commands,
     asset_server: Res<AssetServer>,
     config: Res<Config>,
     audio: Res<Audio>,
 ) {
-    channels.music_1 = AudioChannel::new("music_1".to_owned());
-    channels.music_2 = AudioChannel::new("music_2".to_owned());
-    channels.footsteps = AudioChannel::new("footsteps".to_owned());
-    channels.sigh = AudioChannel::new("sigh".to_owned());
+    let music1 = audio
+        .play(asset_server.load("music/base.ogg"))
+        .with_volume(config.audio.music_volume.into())
+        .looped()
+        .handle();
 
-    audio.set_volume_in_channel(config.audio.music_volume, &channels.music_1);
-    audio.set_volume_in_channel(config.audio.music_volume, &channels.music_2);
+    let music2 = audio
+        .play(asset_server.load("music/crystally.ogg"))
+        .with_volume(config.audio.music_volume.into())
+        .looped()
+        .handle();
 
-    audio.play_looped_in_channel(asset_server.load("music/base.mp3"), &channels.music_1);
-    audio.play_looped_in_channel(asset_server.load("music/crystally.mp3"), &channels.music_2);
-    audio.play_looped_in_channel(
-        asset_server.load("sounds/Running-on-Gravel-www.fesliyanstudios.com.mp3"),
-        &channels.footsteps,
-    );
-    audio.play_looped_in_channel(
-        asset_server.load("sounds/Sigh-A3-www.fesliyanstudios.com.mp3"),
-        &channels.sigh,
-    );
+    let sigh = audio
+        .play(asset_server.load("sounds/Running-on-Gravel-www.fesliyanstudios.com.ogg"))
+        .with_volume(config.audio.effects_volume.into())
+        .looped()
+        .handle();
+
+    let footsteps = audio
+        .play(asset_server.load("sounds/Sigh-A3-www.fesliyanstudios.com.ogg"))
+        .with_volume(config.audio.effects_volume.into())
+        .looped()
+        .handle();
+
+    let music = AudioInstances {
+        music1,
+        music2,
+        sigh,
+        footsteps,
+    };
+
+    commands.insert_resource(music);
 }
 
 pub fn music_scene(
-    channels: ResMut<AudioChannels>,
     config: Res<Config>,
-    audio: Res<Audio>,
     query: Query<(&Player, &Transform)>,
+    handle: Res<AudioInstances>,
+    mut audio_instances: ResMut<Assets<AudioInstance>>,
 ) {
     // cross fade between the two tracks depending on the current player
     // x translation
     let (player, transform) = query.single();
     let mix = ((300.0 - transform.translation.x) / 600.0).clamp(0.0, 1.0);
-    audio.set_volume_in_channel(mix * config.audio.music_volume, &channels.music_1);
-    audio.set_volume_in_channel((1.0 - mix) * config.audio.music_volume, &channels.music_2);
-    if player.state == PlayerState::Walk {
-        audio.set_volume_in_channel(config.audio.effects_volume, &channels.footsteps);
-    } else {
-        audio.set_volume_in_channel(0.0, &channels.footsteps);
+
+    if let Some(instance) = audio_instances.get_mut(&handle.music1) {
+        instance.set_volume(
+            (mix * config.audio.music_volume).into(),
+            AudioTween::default(),
+        );
     }
-    if player.state == PlayerState::Interact {
-        audio.set_volume_in_channel(config.audio.effects_volume, &channels.sigh);
-    } else {
-        audio.set_volume_in_channel(0.0, &channels.sigh);
+
+    if let Some(instance) = audio_instances.get_mut(&handle.music2) {
+        instance.set_volume(
+            ((1.0 - mix) * config.audio.music_volume).into(),
+            AudioTween::default(),
+        );
+    }
+
+    if let Some(instance) = audio_instances.get_mut(&handle.sigh) {
+        if player.state == PlayerState::Walk {
+            instance.set_volume(config.audio.effects_volume.into(), AudioTween::default());
+        } else {
+            instance.set_volume(0.0, AudioTween::default());
+        }
+    }
+    if let Some(instance) = audio_instances.get_mut(&handle.footsteps) {
+        if player.state == PlayerState::Interact {
+            instance.set_volume(config.audio.effects_volume.into(), AudioTween::default());
+        } else {
+            instance.set_volume(0.0, AudioTween::default());
+        }
     }
 }

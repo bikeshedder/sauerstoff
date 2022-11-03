@@ -1,10 +1,10 @@
 use std::f32::consts::TAU;
 
 use bevy::{
-    core::{Stopwatch, Time},
     math::Vec3,
     prelude::{AssetServer, BuildChildren, Commands, GlobalTransform, Query, Res, Transform},
     sprite::{Sprite, SpriteBundle},
+    time::{Stopwatch, Time},
 };
 
 use crate::{

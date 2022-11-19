@@ -1,4 +1,6 @@
-use bevy::{ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode};
+use bevy::{
+    ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode, window::close_on_esc,
+};
 use bevy_kira_audio::AudioPlugin;
 
 use components::{
@@ -207,6 +209,7 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
                 .with_system(item_bobbing)
                 .with_system(music_scene),
         )
+        .add_system(close_on_esc)
         .run();
 
     Ok(())

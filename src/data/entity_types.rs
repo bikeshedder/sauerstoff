@@ -1,7 +1,7 @@
 use std::{borrow::Cow, time::Duration};
 
 use bevy::{
-    prelude::{Handle, Image},
+    prelude::{Handle, Image, Resource},
     sprite::TextureAtlas,
     utils::HashMap,
 };
@@ -9,7 +9,10 @@ use serde::Deserialize;
 
 use super::common::{Position, Rect, Size};
 
-pub type EntityTypes = HashMap<String, EntityType>;
+#[derive(Resource)]
+pub struct EntityTypes {
+    pub map: HashMap<String, EntityType>,
+}
 
 #[derive(Deserialize, Debug)]
 pub struct EntityType {
@@ -26,7 +29,7 @@ pub struct EntityType {
 #[derive(Debug)]
 pub enum Loaded {
     Static(Handle<Image>),
-    Animation(LoadedAnimation),
+    //Animation(LoadedAnimation),
     Animations(LoadedAnimations),
 }
 
@@ -93,5 +96,5 @@ pub fn load_entity_types() -> Result<EntityTypes, anyhow::Error> {
         let entity_name = path.file_stem().unwrap().to_string_lossy();
         entity_types.insert(entity_name.to_string(), entity_type);
     }
-    Ok(entity_types)
+    Ok(EntityTypes { map: entity_types })
 }

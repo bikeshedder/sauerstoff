@@ -1,8 +1,9 @@
-use bevy::utils::HashMap;
+use bevy::{ecs::system::Resource, utils::HashMap};
 use serde::Deserialize;
 
 use super::common::Position;
 
+#[derive(Resource)]
 pub struct Map {
     pub entities: MapEntities,
 }

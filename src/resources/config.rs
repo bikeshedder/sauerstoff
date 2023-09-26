@@ -1,6 +1,7 @@
+use bevy::prelude::Resource;
 use serde::Deserialize;
 
-#[derive(Debug, Deserialize)]
+#[derive(Resource, Debug, Deserialize)]
 pub struct Config {
     pub audio: AudioConfig,
 }

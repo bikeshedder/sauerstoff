@@ -1,5 +1,8 @@
 use bevy::{
-    ecs::system::EntityCommands, prelude::*, render::camera::ScalingMode, window::close_on_esc,
+    ecs::system::EntityCommands,
+    prelude::*,
+    render::camera::ScalingMode,
+    window::{close_on_esc, WindowResolution},
 };
 use bevy_kira_audio::AudioPlugin;
 
@@ -34,13 +37,14 @@ mod helpers;
 mod resources;
 mod systems;
 
-#[derive(Debug, Clone, PartialEq, Eq, Hash)]
+#[derive(States, Debug, Default, Clone, PartialEq, Eq, Hash)]
 pub enum AppState {
+    #[default]
     Setup,
     Finished,
 }
 
-#[derive(Default)]
+#[derive(Resource, Default)]
 pub struct ImageHandles {
     handles: Vec<Handle<Image>>,
 }
@@ -66,7 +70,7 @@ fn spawn_entity(
         collision
     });
     let mut entity_cmds = match entity_type.loaded.as_ref().unwrap() {
-        Loaded::Static(handle) => commands.spawn_bundle(SpriteBundle {
+        Loaded::Static(handle) => commands.spawn(SpriteBundle {
             texture: handle.clone(),
             transform: Transform {
                 translation,
@@ -75,7 +79,7 @@ fn spawn_entity(
             ..Default::default()
         }),
         Loaded::Animations(animations) => {
-            let mut cmd = commands.spawn_bundle(SpriteSheetBundle {
+            let mut cmd = commands.spawn(SpriteSheetBundle {
                 texture_atlas: animations.atlas.clone(),
                 // FIXME pass optional initial frame
                 sprite: TextureAtlasSprite {
@@ -100,7 +104,6 @@ fn spawn_entity(
             });
             cmd
         }
-        _ => unimplemented!(),
     };
     if let Some(collision) = collision {
         entity_cmds.insert(collision);
@@ -123,14 +126,14 @@ fn spawn_entity(
 
 fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: Res<EntityTypes>) {
     commands
-        .spawn_bundle({
+        .spawn({
             let mut bundle = Camera2dBundle::default();
             let proj = &mut bundle.projection;
             proj.scaling_mode = ScalingMode::FixedHorizontal(1920.0);
             bundle
         })
         .insert(FollowCam {});
-    commands.spawn_bundle(SpriteBundle {
+    commands.spawn(SpriteBundle {
         texture: asset_server.load("map/map.jpg"),
         transform: Transform {
             translation: Vec3::new(0.0, 0.0, 0.0),
@@ -141,21 +144,23 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
 
     spawn_entity(
         &mut commands,
-        entity_types.get("wolfgang").unwrap(),
+        entity_types.map.get("wolfgang").unwrap(),
         Vec3::new(0.0, 0.0, 0.0),
         Some("idle"),
         |cmd| {
             cmd.insert(Player::default())
                 // XXX initial timer value?
-                .insert(AnimationTimer::from_seconds(0.1, true));
+                .insert(AnimationTimer::from_seconds(0.1));
         },
     );
 
-    commands.spawn_bundle(TextBundle {
+    commands.spawn(Text2dBundle {
+        /*
         style: Style {
             margin: UiRect::all(Val::Px(5.0)),
             ..Default::default()
         },
+        */
         text: Text::from_section(
             "Text Example",
             TextStyle {
@@ -170,9 +175,9 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
     spawn_item(&mut commands, asset_server);
 }
 
-fn resize_window(mut windows: ResMut<Windows>) {
-    let window = windows.get_primary_mut().unwrap();
-    window.set_resolution(1920.0, 1080.0);
+fn resize_window(mut windows: Query<&mut Window>) {
+    let mut window = windows.get_single_mut().unwrap();
+    window.resolution = WindowResolution::new(1920.0, 1080.0);
 }
 
 fn main() -> Result<(), Box<dyn std::error::Error>> {
@@ -180,37 +185,35 @@ fn main() -> Result<(), Box<dyn std::error::Error>> {
     let map = load_map()?;
     let entity_types = load_entity_types()?;
 
-    App::new()
-        .insert_resource(config)
-        .init_resource::<ImageHandles>()
-        .init_resource::<Map>()
-        .insert_resource(map)
-        .insert_resource(entity_types)
-        .add_plugins(DefaultPlugins)
-        .add_plugin(AudioPlugin)
-        .add_state(AppState::Setup)
-        .add_startup_system(music_system)
-        .add_startup_system(resize_window)
-        .add_system_set(SystemSet::on_enter(AppState::Setup).with_system(load_textures))
-        .add_system_set(SystemSet::on_update(AppState::Setup).with_system(check_textures))
-        .add_system_set(
-            SystemSet::on_enter(AppState::Finished)
-                .with_system(initialize_map)
-                .with_system(setup),
+    let mut app = App::new();
+    app.add_state::<AppState>();
+    app.insert_resource(config);
+    app.init_resource::<ImageHandles>();
+    app.init_resource::<Map>();
+    app.insert_resource(map);
+    app.insert_resource(entity_types);
+    app.add_plugins(DefaultPlugins);
+    app.add_plugins(AudioPlugin);
+    app.add_systems(Startup, music_system);
+    app.add_systems(Startup, resize_window);
+    app.add_systems(Startup, load_textures);
+    app.add_systems(Update, check_textures.run_if(in_state(AppState::Setup)));
+    app.add_systems(OnEnter(AppState::Finished), (initialize_map, setup));
+    app.add_systems(
+        Update,
+        (
+            player_input,
+            player_system,
+            animation_system,
+            detect_interaction,
+            camera_system,
+            item_bobbing,
+            music_scene,
         )
-        .add_system_set(
-            SystemSet::on_update(AppState::Finished)
-                //.with_run_criteria(FixedTimestep::step(1.0 / 60.0))
-                .with_system(player_input)
-                .with_system(player_system)
-                .with_system(animation_system)
-                .with_system(detect_interaction)
-                .with_system(camera_system)
-                .with_system(item_bobbing)
-                .with_system(music_scene),
-        )
-        .add_system(close_on_esc)
-        .run();
+            .run_if(in_state(AppState::Finished)),
+    );
+    app.add_systems(Update, close_on_esc);
+    app.run();
 
     Ok(())
 }

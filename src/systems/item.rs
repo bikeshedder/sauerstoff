@@ -14,7 +14,7 @@ use crate::{
 
 pub fn spawn_item(commands: &mut Commands, asset_server: Res<AssetServer>) {
     commands
-        .spawn()
+        .spawn_empty()
         .insert(Transform {
             translation: Vec3::new(200.0, 200.0, z_index(200.0 - 50.0)),
             scale: Vec3::splat(0.4),
@@ -23,7 +23,7 @@ pub fn spawn_item(commands: &mut Commands, asset_server: Res<AssetServer>) {
         .insert(GlobalTransform::default())
         .with_children(|parent| {
             parent
-                .spawn_bundle(SpriteBundle {
+                .spawn(SpriteBundle {
                     texture: asset_server.load("entities/Crystal_Shard.png"),
                     ..Default::default()
                 })
@@ -31,7 +31,7 @@ pub fn spawn_item(commands: &mut Commands, asset_server: Res<AssetServer>) {
                     watch: Stopwatch::new(),
                 });
             parent
-                .spawn_bundle(SpriteBundle {
+                .spawn(SpriteBundle {
                     texture: asset_server.load("entities/Crystal_Shard_Shadow.png"),
                     transform: Transform {
                         translation: Vec3::new(0.0, -80.0, 0.0),

@@ -12,9 +12,9 @@ pub struct AnimationTimer {
 }
 
 impl AnimationTimer {
-    pub fn from_seconds(duration: f32, repeating: bool) -> Self {
+    pub fn from_seconds(duration: f32) -> Self {
         Self {
-            timer: Timer::from_seconds(duration, repeating),
+            timer: Timer::from_seconds(duration, bevy::time::TimerMode::Repeating),
         }
     }
 }

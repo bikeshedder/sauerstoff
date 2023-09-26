@@ -1,7 +1,11 @@
-use bevy::math::{Mat4, Quat, Vec3};
+use bevy::{
+    ecs::system::Resource,
+    math::{Mat4, Quat, Vec3},
+};
 use bresenham::Bresenham;
 use image::GrayImage;
 
+#[derive(Resource)]
 pub struct Map {
     collision_map: GrayImage,
 }

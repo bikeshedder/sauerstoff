@@ -14,25 +14,25 @@ pub fn music_system(
 ) {
     let music1 = audio
         .play(asset_server.load("music/base.ogg"))
-        .with_volume(config.audio.music_volume.into())
+        .with_volume(config.audio.music_volume as f64)
         .looped()
         .handle();
 
     let music2 = audio
         .play(asset_server.load("music/crystally.ogg"))
-        .with_volume(config.audio.music_volume.into())
+        .with_volume(config.audio.music_volume as f64)
         .looped()
         .handle();
 
     let sigh = audio
         .play(asset_server.load("sounds/Running-on-Gravel-www.fesliyanstudios.com.ogg"))
-        .with_volume(config.audio.effects_volume.into())
+        .with_volume(config.audio.effects_volume as f64)
         .looped()
         .handle();
 
     let footsteps = audio
         .play(asset_server.load("sounds/Sigh-A3-www.fesliyanstudios.com.ogg"))
-        .with_volume(config.audio.effects_volume.into())
+        .with_volume(config.audio.effects_volume as f64)
         .looped()
         .handle();
 
@@ -59,28 +59,28 @@ pub fn music_scene(
 
     if let Some(instance) = audio_instances.get_mut(&handle.music1) {
         instance.set_volume(
-            (mix * config.audio.music_volume).into(),
+            (mix * config.audio.music_volume) as f64,
             AudioTween::default(),
         );
     }
 
     if let Some(instance) = audio_instances.get_mut(&handle.music2) {
         instance.set_volume(
-            ((1.0 - mix) * config.audio.music_volume).into(),
+            ((1.0 - mix) * config.audio.music_volume) as f64,
             AudioTween::default(),
         );
     }
 
     if let Some(instance) = audio_instances.get_mut(&handle.sigh) {
         if player.state == PlayerState::Walk {
-            instance.set_volume(config.audio.effects_volume.into(), AudioTween::default());
+            instance.set_volume(config.audio.effects_volume as f64, AudioTween::default());
         } else {
             instance.set_volume(0.0, AudioTween::default());
         }
     }
     if let Some(instance) = audio_instances.get_mut(&handle.footsteps) {
         if player.state == PlayerState::Interact {
-            instance.set_volume(config.audio.effects_volume.into(), AudioTween::default());
+            instance.set_volume(config.audio.effects_volume as f64, AudioTween::default());
         } else {
             instance.set_volume(0.0, AudioTween::default());
         }

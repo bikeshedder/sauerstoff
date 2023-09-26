@@ -17,16 +17,16 @@ opt-level = 3
 strip = "debuginfo"
 
 [dependencies]
-anyhow = "1.0.56"
+anyhow = "1"
 bresenham = "0.1.1"
-bevy_kira_audio = { version = "0.12.0" }
+bevy_kira_audio = { version = "0.17" }
 image = { version = "0.24", default-features = false, features = ["png"] }
-itertools = "0.10.3"
-serde = { version = "1.0.136", features = ["derive"] }
-serde_yaml = "0.9.14"
+itertools = "0.11"
+serde = { version = "1", features = ["derive"] }
+serde_yaml = "0.9"
 
 [dependencies.bevy]
-version = "0.8.1"
+version = "0.11"
 default-features = false
 features = [
     "animation",
@@ -34,12 +34,14 @@ features = [
     #"bevy_audio",
     "bevy_gilrs",
     "bevy_scene",
+    "bevy_sprite",
+    "bevy_text",
     "bevy_winit",
-    "render",
+    #"render",
     "png",
     "hdr",
     #"vorbis",
     "x11",
     "filesystem_watcher",
-    "jpeg"
+    "jpeg",
 ]

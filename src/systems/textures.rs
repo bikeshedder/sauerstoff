@@ -2,7 +2,7 @@ use std::time::Duration;
 
 use bevy::{
     asset::LoadState,
-    prelude::{AssetServer, Assets, Handle, Image, Res, ResMut, State},
+    prelude::{AssetServer, Assets, Handle, Image, NextState, Res, ResMut},
     sprite::{TextureAtlas, TextureAtlasBuilder},
     utils::HashMap,
 };
@@ -17,7 +17,7 @@ pub fn load_textures(
     mut image_handles: ResMut<ImageHandles>,
     asset_server: Res<AssetServer>,
 ) {
-    for entity_type in entity_types.values_mut() {
+    for entity_type in entity_types.map.values_mut() {
         match &entity_type.image {
             EntityImage::Static(image) => {
                 let handle = asset_server.load::<Image, _>(&format!("entities/{image}"));
@@ -40,7 +40,7 @@ pub fn load_textures(
 }
 
 pub fn check_textures(
-    mut state: ResMut<State<AppState>>,
+    mut state: ResMut<NextState<AppState>>,
     image_handles: ResMut<ImageHandles>,
     asset_server: Res<AssetServer>,
     mut entity_types: ResMut<EntityTypes>,
@@ -48,11 +48,11 @@ pub fn check_textures(
     mut texture_atlases: ResMut<Assets<TextureAtlas>>,
 ) {
     if let LoadState::Loaded =
-        asset_server.get_group_load_state(image_handles.handles.iter().map(|handle| handle.id))
+        asset_server.get_group_load_state(image_handles.handles.iter().map(|handle| handle.id()))
     {
-        state.set(AppState::Finished).unwrap();
+        state.set(AppState::Finished);
 
-        for entity_type in entity_types.values_mut() {
+        for entity_type in entity_types.map.values_mut() {
             match &entity_type.image {
                 EntityImage::Static(_) => {
                     // The handle was already assigned in the load_textures method.
@@ -68,7 +68,7 @@ pub fn check_textures(
                                     .iter()
                                     .map(|frame| {
                                         let file_name = format!("entities/{}", frame.image);
-                                        let handle = asset_server.get_handle(&file_name);
+                                        let handle = asset_server.get_handle(file_name);
                                         let texture = textures.get(&handle).unwrap();
                                         atlas_builder.add_texture(handle.clone(), texture);
                                         (handle, Duration::from_millis(frame.duration))

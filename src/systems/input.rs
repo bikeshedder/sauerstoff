@@ -14,7 +14,7 @@ pub fn player_input(
     input.merge(
         gamepads
             .iter()
-            .map(|gamepad| PlayerInput::from_gamepad(*gamepad, &gamepad_axis, &gamepad_button)),
+            .map(|gamepad| PlayerInput::from_gamepad(gamepad, &gamepad_axis, &gamepad_button)),
     );
     player.input = input;
 }

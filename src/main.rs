@@ -154,13 +154,11 @@ fn setup(mut commands: Commands, asset_server: Res<AssetServer>, entity_types: R
         },
     );
 
-    commands.spawn(Text2dBundle {
-        /*
+    commands.spawn(TextBundle {
         style: Style {
             margin: UiRect::all(Val::Px(5.0)),
             ..Default::default()
         },
-        */
         text: Text::from_section(
             "Text Example",
             TextStyle {

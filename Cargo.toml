@@ -36,6 +36,7 @@ features = [
     "bevy_scene",
     "bevy_sprite",
     "bevy_text",
+    "bevy_ui",
     "bevy_winit",
     #"render",
     "png",

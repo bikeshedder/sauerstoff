@@ -2,7 +2,7 @@ use std::f32::consts::TAU;
 
 use bevy::{
     math::Vec3,
-    prelude::{AssetServer, BuildChildren, Commands, GlobalTransform, Query, Res, Transform},
+    prelude::{AssetServer, BuildChildren, Commands, Query, Res, SpatialBundle, Transform},
     sprite::{Sprite, SpriteBundle},
     time::{Stopwatch, Time},
 };
@@ -14,13 +14,14 @@ use crate::{
 
 pub fn spawn_item(commands: &mut Commands, asset_server: Res<AssetServer>) {
     commands
-        .spawn_empty()
-        .insert(Transform {
-            translation: Vec3::new(200.0, 200.0, z_index(200.0 - 50.0)),
-            scale: Vec3::splat(0.4),
+        .spawn(SpatialBundle {
+            transform: Transform {
+                translation: Vec3::new(200.0, 200.0, z_index(200.0 - 50.0)),
+                scale: Vec3::splat(0.4),
+                ..Default::default()
+            },
             ..Default::default()
         })
-        .insert(GlobalTransform::default())
         .with_children(|parent| {
             parent
                 .spawn(SpriteBundle {
